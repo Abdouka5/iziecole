@@ -1,36 +1,82 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# iziecole
 
-## Getting Started
+SaaS de gestion scolaire multi-établissements pour les écoles privées du Sénégal
+(Maternelle → Lycée). Cahier des charges complet : [docs/cahier-des-charges.md](docs/cahier-des-charges.md).
+Décisions d'architecture et points ouverts : [docs/decisions.md](docs/decisions.md).
 
-First, run the development server:
+## Stack
+
+- Next.js 14 (App Router), JavaScript
+- Supabase (PostgreSQL + Auth + Row Level Security)
+- Tailwind CSS v4 + shadcn/ui
+
+## Démarrer en local
+
+1. Créer un projet Supabase, puis copier `.env.local.example` vers `.env.local` et
+   renseigner `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` /
+   `SUPABASE_SERVICE_ROLE_KEY` (Project Settings → API).
+2. Appliquer les migrations SQL dans `supabase/migrations/` (voir `supabase/README.md`).
+3. Installer et lancer :
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Sans `.env.local`, la page d'accueil et `/login` se chargent, mais toute page qui
+interroge Supabase (tableau de bord, sélection d'école, etc.) échouera — c'est attendu
+tant qu'aucun projet Supabase n'est connecté.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+```
+src/
+  app/
+    login/                 Connexion (email + mot de passe)
+    select-school/         Sélection d'établissement (multi-tenant)
+    auth/callback/         Échange du code Supabase (confirmation email, magic link)
+    (app)/                 Zone authentifiée : sidebar + header, protégée par school-context
+      dashboard/ students/ grades/ finance/ schedule/ communication/ settings/
+      caisse/              Écran caissier (accès restreint)
+      admin/               Liste des écoles (super admin uniquement)
+  components/
+    ui/                    shadcn/ui
+    layout/                Sidebar, Header, ModulePlaceholder
+    brand/                 Logo (wordmark iziecole)
+  lib/
+    supabase/              Clients browser/server + middleware de session
+    school-context.js      Résout { role, school } depuis le cookie de session
+    roles.js                Constantes de rôles
+supabase/
+  migrations/              Schéma SQL + RLS (voir supabase/README.md)
+docs/
+  cahier-des-charges.md
+  decisions.md
+```
 
-## Learn More
+## Modèle multi-tenant
 
-To learn more about Next.js, take a look at the following resources:
+Une seule base de données Supabase, isolation par `school_id` avec Row Level Security
+sur chaque table (voir `supabase/README.md`). Après connexion, l'utilisateur choisit son
+établissement sur `/select-school` ; ce choix est stocké dans un cookie et résolu à
+chaque requête par `getCurrentMembership()` (`src/lib/school-context.js`), qui détermine
+son rôle (`school_admin`, `teacher`, `cashier`, `parent`, `student`) et donc la
+navigation et les données accessibles.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Où en est le scaffold
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+Fait :
+- Auth Supabase (connexion, callback), sélection d'établissement, layout authentifié
+  avec navigation par rôle
+- Schéma complet + RLS pour les 5 modules du cahier des charges (élèves, notes,
+  finances, emploi du temps, communication)
+- Charte graphique (couleurs, typographie) branchée dans Tailwind
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+Pas fait (placeholders en l'état) :
+- Landing page marketing (page `/` encore celle par défaut de `create-next-app`)
+- CRUD réel dans les pages `students/`, `grades/`, `finance/`, `schedule/`,
+  `communication/`, `settings/` — actuellement des `ModulePlaceholder`
+- Écran caissier fonctionnel (wireframe seulement) et impression thermique
+  (mécanisme non tranché, voir `docs/decisions.md`)
+- Génération de bulletins PDF, calcul des moyennes/classements
+- Intégration Wave / Orange Money
