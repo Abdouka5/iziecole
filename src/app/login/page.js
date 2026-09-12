@@ -1,7 +1,10 @@
+import { Mail } from "lucide-react";
+import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import { signIn } from "./actions";
 
 export default async function LoginPage({ searchParams }) {
@@ -20,14 +23,23 @@ export default async function LoginPage({ searchParams }) {
         <form action={signIn} className="space-y-4 rounded-lg border bg-card p-6 shadow-sm">
           <div className="space-y-2">
             <Label htmlFor="email">Adresse e-mail</Label>
-            <Input id="email" name="email" type="email" required autoComplete="email" />
+            <div className="relative">
+              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                required
+                autoComplete="email"
+                className="pl-9"
+              />
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Mot de passe</Label>
-            <Input
+            <PasswordInput
               id="password"
               name="password"
-              type="password"
               required
               autoComplete="current-password"
             />
@@ -40,6 +52,13 @@ export default async function LoginPage({ searchParams }) {
           <Button type="submit" className="w-full">
             Se connecter
           </Button>
+
+          <p className="pt-2 text-center text-sm text-muted-foreground">
+            Vous n&apos;avez pas encore de compte ?{" "}
+            <Link href="/signup" className="font-medium text-primary hover:underline">
+              Créer un compte
+            </Link>
+          </p>
         </form>
       </div>
     </div>

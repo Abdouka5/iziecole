@@ -44,22 +44,76 @@ Le module Finance (`supabase/migrations/0005_finance.sql`) enregistre les paieme
 génère les données de reçu ; le mécanisme d'impression physique reste à choisir avant
 de construire l'écran caissier.
 
-## Passerelle de paiement en ligne : PayTech
+## Passerelle de paiement en ligne : retiré du périmètre
 
-**Statut** : décidé.
+**Statut** : décidé — pas de paiement en ligne.
 
-Le cahier des charges laissait le choix entre CinetPay et PayTech comme agrégateur pour
-Wave et Orange Money. **PayTech retenu** — compte marchand ouvert, clés API en place
-dans `.env.local` (`PAYTECH_API_KEY`, `PAYTECH_API_SECRET`, `PAYTECH_ENV`).
+Le cahier des charges envisageait un paiement en ligne via Wave/Orange Money par un
+agrégateur (CinetPay ou PayTech). PayTech avait été retenu et un premier client avait
+été implémenté (`src/lib/paytech.js`, webhook IPN `/api/paytech/ipn`,
+`src/lib/supabase/admin.js` pour le client service-role) — **le tout a été retiré**
+(2026-09-12) : les écoles ne paient/n'encaissent pas en ligne.
 
-Reste à faire avant d'activer le paiement en ligne dans le module Finance :
-- Écrire le client PayTech (`src/lib/paytech.js`) : création de demande de paiement,
-  redirection Wave/Orange Money, vérification de signature sur le webhook IPN.
-- Ajouter une route webhook (`/api/paytech/ipn` ou équivalent) qui marque
-  `invoices`/`payments` payés à réception de la confirmation PayTech, en réutilisant le
-  trigger `recompute_invoice_status` déjà en place (`supabase/migrations/0005_finance.sql`).
-- Confirmer si `PAYTECH_ENV` doit être `test` ou `prod` selon le type de clés fournies
-  par PayTech.
+Le module Finance reste centré sur l'encaissement **sur place par le Caissier** :
+recherche élève → saisie du paiement → reçu imprimé (voir "Impression thermique"
+ci-dessus, toujours ouvert). `wave` et `orange_money` restent des valeurs possibles
+de `payments.method` (`supabase/migrations/0005_finance.sql`) — elles servent juste à
+taguer qu'un versement reçu en personne (espèces, ou transfert Wave/OM montré sur le
+téléphone du parent) l'a été par ce moyen, ça ne rouvre pas d'intégration API.
+
+Si le paiement en ligne redevient pertinent plus tard, le code retiré donne un point
+de départ (commit avant le 2026-09-12) plutôt que de repartir de zéro.
+
+**À ne pas confondre avec le module Abonnements ci-dessous** — ce qui est retiré ici,
+c'est le paiement des frais de scolarité (parent → école) en ligne. Le paiement de
+l'abonnement iziecole lui-même (école → iziecole) est un besoin distinct, toujours
+prévu.
+
+## Module Abonnements (école → iziecole) : implémenté (paiement en ligne dédié)
+
+**Statut** : décidé et implémenté (2026-09-12) — paiement en ligne via PayTech,
+réutilisé mais dans un flux séparé de celui retiré ci-dessus.
+
+C'est l'école cliente qui paie son abonnement iziecole (une des 4 formules — voir
+`docs/cahier-des-charges.md` §6), pas un parent qui paie des frais de scolarité.
+
+- `supabase/migrations/0009_subscription_billing.sql` — table
+  `subscription_payments` (école, formule, montant, période, statut
+  pending/paid/failed/cancelled, référence PayTech). Visible seulement par
+  `school_admin` (sa propre école) et `super_admin` (toutes).
+- `src/lib/subscription-plans.js` — prix par formule (5 000 / 15 000 / 25 000 /
+  35 000 FCFA), source unique pour l'admin et les paramètres école.
+- `src/lib/paytech.js` — client PayTech dédié à ce flux (`buildRefCommand` préfixe
+  `SUB-`, distinct du `INV-` de l'ancien flux tuition supprimé) +
+  `src/lib/supabase/admin.js` (client service-role pour le webhook, aucune session
+  utilisateur côté PayTech).
+- `src/app/api/paytech/subscription-ipn/route.js` — webhook : marque le paiement
+  `paid` et met à jour `schools.subscription_plan` (gère aussi bien un
+  renouvellement qu'un changement de formule).
+- `src/app/(app)/settings/actions.js` + `page.js` — la direction (`school_admin`)
+  déclenche le paiement du mois depuis Paramètres, voit l'historique.
+- `src/app/(app)/admin/page.js` — le Super Admin voit le statut d'abonnement
+  (à jour / en attente / aucun paiement) de chaque école.
+
+Pas encore fait : facturation récurrente automatique (aujourd'hui c'est la direction
+qui clique "Payer" chaque mois, rien n'envoie de rappel), et pas de blocage d'accès
+automatique en cas d'impayé — le Super Admin voit juste le statut dans `/admin`.
+
+### Inscription self-service (`/signup`)
+
+Une école peut désormais créer son propre compte sans passer par le Super Admin —
+`src/app/signup/page.js` + `actions.js`. Le formulaire (nom d'établissement, niveau =
+la formule payante, e-mail admin, téléphone +221, mot de passe) crée en une seule
+action : l'utilisateur Supabase Auth (`school_admin`), la ligne `schools` (slug généré
+et dédupliqué automatiquement), et le `membership` `school_admin` qui les relie.
+
+Ces deux derniers inserts utilisent `createAdminClient()` (service-role) exprès : un
+tout nouveau compte n'a encore aucun membership, donc les policies RLS normales
+(`school_admin` gère les memberships *de son école*) ne peuvent pas s'appliquer à sa
+toute première ligne — c'est le même genre d'échappatoire contrôlée que le webhook
+PayTech. Après inscription, l'école atterrit sur `/select-school` (ou est invitée à
+confirmer son e-mail si la confirmation est activée côté Supabase Auth), puis peut
+payer son abonnement depuis `/settings` comme n'importe quelle école.
 
 ## Assets de marque
 
