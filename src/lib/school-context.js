@@ -34,7 +34,7 @@ export const getCurrentMembership = cache(async function getCurrentMembership() 
     .maybeSingle();
 
   if (profile?.is_super_admin) {
-    return { role: "super_admin", school, fullName: profile.full_name };
+    return { role: "super_admin", school, fullName: profile.full_name, userId: user.id };
   }
 
   const { data: membership } = await supabase
@@ -45,5 +45,5 @@ export const getCurrentMembership = cache(async function getCurrentMembership() 
     .maybeSingle();
   if (!membership) return null;
 
-  return { role: membership.role, school, fullName: profile?.full_name };
+  return { role: membership.role, school, fullName: profile?.full_name, userId: user.id };
 });

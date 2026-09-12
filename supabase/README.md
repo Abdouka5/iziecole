@@ -41,3 +41,9 @@ Un utilisateur (`profiles`) peut avoir plusieurs `memberships` (ex: enseignant d
 | `0005_finance.sql` | `fee_schedules`, `invoices`, `payments` (+ trigger de statut auto) |
 | `0006_schedule.sql` | `rooms`, `timetable_slots` |
 | `0007_communication.sql` | `announcements`, `messages` |
+| `0008_payments_receipt_unique.sql` | Contrainte d'unicité sur les numéros de reçu |
+| `0009_subscription_billing.sql` | `subscription_payments` (abonnement école → iziecole) |
+| `0010_documents.sql` | `documents` + bucket Storage privé `documents` |
+
+Pour une base neuve, le plus simple est de coller `supabase/bootstrap.sql` (toutes les
+migrations concaténées dans l'ordre) en une seule fois dans le SQL Editor.
