@@ -1,6 +1,7 @@
 import { Users, GraduationCap, User, BookOpen, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMembership } from "@/lib/school-context";
+import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/layout/stat-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -50,18 +51,16 @@ export default async function ClassesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-heading font-bold text-brand-ink">Classes</h1>
-          <p className="text-sm text-muted-foreground">
-            Gérez les classes de votre établissement
-          </p>
-        </div>
-        <Button>
-          <Plus className="mr-1.5 h-4 w-4" />
-          Ajouter une classe
-        </Button>
-      </div>
+      <PageHeader
+        title="Classes"
+        subtitle="Gérez les classes de votre établissement"
+        actions={
+          <Button>
+            <Plus className="mr-1.5 h-4 w-4" />
+            Ajouter une classe
+          </Button>
+        }
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={GraduationCap} label="Total des classes" value={classes?.length ?? 0} accent="blue" />
@@ -70,7 +69,7 @@ export default async function ClassesPage() {
         <StatCard icon={BookOpen} label="Niveaux scolaires" value={levelsCount ?? 0} accent="amber" />
       </div>
 
-      <div className="rounded-lg border bg-card">
+      <div className="overflow-x-auto rounded-2xl border bg-card">
         <Table>
           <TableHeader>
             <TableRow>

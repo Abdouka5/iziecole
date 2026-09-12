@@ -5,86 +5,105 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #2c2c2a;
+  /* Design system per docs/decisions.md §"Refonte UI premium" (2026-09-12).
+     "Fond général" vs "Blanc" map to shadcn's background/card distinction:
+     the page canvas is a tinted --background, elevated surfaces (cards,
+     popovers) sit on plain white --card. */
+  --background: #f8fafc;
+  --foreground: #111827;
   --card: #ffffff;
-  --card-foreground: #2c2c2a;
+  --card-foreground: #111827;
   --popover: #ffffff;
-  --popover-foreground: #2c2c2a;
+  --popover-foreground: #111827;
 
-  --primary: #185fa5;
+  --primary: #146ef5;
   --primary-foreground: #ffffff;
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: #2c2c2a;
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: #2c2c2a;
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: rgb(24 95 165 / 45%);
+  --secondary: #f1f5f9;
+  --secondary-foreground: #111827;
+  --muted: #f1f5f9;
+  --muted-foreground: #667085;
+  --accent: #eff6ff;
+  --accent-foreground: #146ef5;
+  --destructive: #f04438;
+  --border: #e5eaf2;
+  --input: #e5eaf2;
+  --ring: rgb(20 110 245 / 45%);
+
+  /* Status colors — reserved for state (good/warning/critical), never
+     reused as a categorical chart hue. See dataviz skill. */
+  --status-good: #12b76a;
+  --status-warning: #f79009;
+  --status-critical: #f04438;
+
   /* Categorical chart palette — fixed order, validated for CVD separation
      and contrast (see dataviz skill). Keep the order stable: a category
      always maps to the same slot wherever it appears. */
-  --chart-1: #185fa5; /* blue */
-  --chart-2: #16a34a; /* green */
-  --chart-3: #7c3aed; /* purple */
-  --chart-4: #ef9f27; /* amber / brand saffron */
+  --chart-1: #146ef5; /* blue */
+  --chart-2: #12b76a; /* green */
+  --chart-3: #7f56d9; /* purple */
+  --chart-4: #f79009; /* orange */
   --chart-5: #ec4899; /* pink */
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: #2c2c2a;
-  --sidebar-primary: #185fa5;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: #2c2c2a;
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: rgb(24 95 165 / 45%);
 
-  /* iziecole brand constants — stable across light/dark, not theme-adaptive */
+  --radius: 0.875rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #111827;
+  --sidebar-primary: #146ef5;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f1f5f9;
+  --sidebar-accent-foreground: #111827;
+  --sidebar-border: #e5eaf2;
+  --sidebar-ring: rgb(20 110 245 / 45%);
+
+  /* iziecole brand constants — the wordmark's literal colors, stable across
+     light/dark and independent of the UI theme above (see components/brand/logo.jsx). */
   --brand-blue: #185fa5;
   --brand-saffron: #ef9f27;
   --brand-ink: #2c2c2a;
 }
 
 .dark {
-  --background: oklch(0.19 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.24 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.24 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: #4a90d9;
-  --primary-foreground: #0a1929;
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: rgb(74 144 217 / 45%);
-  --chart-1: #4a90d9; /* blue */
-  --chart-2: #16a34a; /* green */
-  --chart-3: #8b5cf6; /* purple */
-  --chart-4: #d97706; /* amber */
+  --background: #0b1220;
+  --foreground: #f1f5f9;
+  --card: #111827;
+  --card-foreground: #f1f5f9;
+  --popover: #111827;
+  --popover-foreground: #f1f5f9;
+  --primary: #4c8ef7;
+  --primary-foreground: #0b1220;
+  --secondary: #1c2536;
+  --secondary-foreground: #f1f5f9;
+  --muted: #1c2536;
+  --muted-foreground: #94a3b8;
+  --accent: #1c2536;
+  --accent-foreground: #4c8ef7;
+  --destructive: #f37066;
+  --border: rgb(255 255 255 / 10%);
+  --input: rgb(255 255 255 / 15%);
+  --ring: rgb(76 142 247 / 45%);
+
+  --status-good: #12b76a;
+  --status-warning: #f79009;
+  --status-critical: #f37066;
+
+  --chart-1: #4c8ef7; /* blue */
+  --chart-2: #0d8a50; /* green */
+  --chart-3: #7f56d9; /* purple */
+  --chart-4: #d97706; /* orange */
   --chart-5: #db2777; /* pink */
-  --sidebar: oklch(0.24 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: #4a90d9;
-  --sidebar-primary-foreground: #0a1929;
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: rgb(74 144 217 / 45%);
+
+  --sidebar: #111827;
+  --sidebar-foreground: #f1f5f9;
+  --sidebar-primary: #4c8ef7;
+  --sidebar-primary-foreground: #0b1220;
+  --sidebar-accent: #1c2536;
+  --sidebar-accent-foreground: #f1f5f9;
+  --sidebar-border: rgb(255 255 255 / 10%);
+  --sidebar-ring: rgb(76 142 247 / 45%);
 }
 
 @theme inline {
   --font-sans: var(--font-inter);
-  --font-heading: var(--font-poppins);
+  --font-heading: var(--font-inter);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -104,6 +123,9 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-status-good: var(--status-good);
+  --color-status-warning: var(--status-warning);
+  --color-status-critical: var(--status-critical);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -123,8 +145,8 @@
   --color-brand-saffron: var(--brand-saffron);
   --color-brand-ink: var(--brand-ink);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 3px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 }

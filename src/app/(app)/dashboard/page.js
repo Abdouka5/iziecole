@@ -15,6 +15,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentMembership } from "@/lib/school-context";
 import { timeAgo } from "@/lib/time";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/layout/page-header";
 import { StatCard, ACCENTS } from "@/components/layout/stat-card";
 import { DonutChart } from "@/components/charts/donut-chart";
 import { EffectifsChart } from "@/components/dashboard/effectifs-chart";
@@ -128,16 +130,16 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-heading font-bold text-brand-ink">
-            Bonjour{membership.fullName ? ` ${membership.fullName}` : ""} 👋
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Voici un aperçu de votre établissement aujourd&apos;hui.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title={`Bonjour${membership.fullName ? ` ${membership.fullName}` : ""} 👋`}
+        subtitle="Voici un aperçu de votre établissement aujourd'hui."
+        actions={
+          <Badge variant="secondary" className="h-8 gap-1.5 rounded-full px-3 text-sm">
+            <CalendarClock className="h-3.5 w-3.5" />
+            Année scolaire {currentYear?.label ?? "non définie"}
+          </Badge>
+        }
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
