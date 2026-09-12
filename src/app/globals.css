@@ -24,11 +24,14 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: rgb(24 95 165 / 45%);
-  --chart-1: #185fa5;
-  --chart-2: #ef9f27;
-  --chart-3: oklch(0.556 0 0);
-  --chart-4: oklch(0.439 0 0);
-  --chart-5: oklch(0.269 0 0);
+  /* Categorical chart palette — fixed order, validated for CVD separation
+     and contrast (see dataviz skill). Keep the order stable: a category
+     always maps to the same slot wherever it appears. */
+  --chart-1: #185fa5; /* blue */
+  --chart-2: #16a34a; /* green */
+  --chart-3: #7c3aed; /* purple */
+  --chart-4: #ef9f27; /* amber / brand saffron */
+  --chart-5: #ec4899; /* pink */
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: #2c2c2a;
@@ -64,11 +67,11 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: rgb(74 144 217 / 45%);
-  --chart-1: #4a90d9;
-  --chart-2: #f3ab41;
-  --chart-3: oklch(0.556 0 0);
-  --chart-4: oklch(0.439 0 0);
-  --chart-5: oklch(0.87 0 0);
+  --chart-1: #4a90d9; /* blue */
+  --chart-2: #16a34a; /* green */
+  --chart-3: #8b5cf6; /* purple */
+  --chart-4: #d97706; /* amber */
+  --chart-5: #db2777; /* pink */
   --sidebar: oklch(0.24 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: #4a90d9;
