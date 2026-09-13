@@ -18,7 +18,10 @@ export async function updateSchoolInfo(formData) {
     })
     .eq("id", membership.school.id);
 
-  revalidatePath("/settings");
+  // The school name/logo also appear in the shared app layout (header,
+  // sidebar) and on printed documents — revalidate the whole layout tree,
+  // not just this path, so the change is visible everywhere on first save.
+  revalidatePath("/", "layout");
   redirect("/settings?section=general");
 }
 

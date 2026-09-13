@@ -154,7 +154,7 @@ export default async function StudentDetailPage({ params }) {
         />
       </div>
 
-      <div className="flex items-start justify-between gap-4 overflow-hidden rounded-2xl bg-card ring-1 ring-foreground/10 print:rounded-none print:ring-0">
+      <div className="flex items-start justify-between gap-4 overflow-hidden rounded-2xl bg-card ring-1 ring-foreground/10">
         <div className="flex items-center gap-3 p-6">
           {membership.school.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -177,7 +177,7 @@ export default async function StudentDetailPage({ params }) {
         </div>
       </div>
 
-      <Card className="print:border-none print:shadow-none">
+      <Card>
         <CardContent className="p-6">
           <SectionTitle>Informations de l&apos;élève</SectionTitle>
 
@@ -226,7 +226,7 @@ export default async function StudentDetailPage({ params }) {
         </CardContent>
       </Card>
 
-      <Card className="print:border-none print:shadow-none">
+      <Card>
         <CardContent className="p-6">
           <SectionTitle>Parents / Responsables</SectionTitle>
           {(guardians ?? []).length === 0 ? (
@@ -241,7 +241,7 @@ export default async function StudentDetailPage({ params }) {
         </CardContent>
       </Card>
 
-      <Card className="print:border-none print:shadow-none">
+      <Card>
         <CardContent className="p-6">
           <SectionTitle>Informations complémentaires</SectionTitle>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
