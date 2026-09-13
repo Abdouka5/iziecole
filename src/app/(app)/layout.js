@@ -6,6 +6,7 @@ import { getSubscriptionStatus } from "@/lib/subscription-status";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { SubscriptionBlocked } from "@/components/layout/subscription-blocked";
+import { SetupBanner } from "@/components/layout/setup-banner";
 
 export default async function AppLayout({ children }) {
   const membership = await getCurrentMembership();
@@ -31,6 +32,11 @@ export default async function AppLayout({ children }) {
     blocked = !active;
   }
 
+  const needsSetup =
+    membership.role === "school_admin" &&
+    !isSettingsPage &&
+    (!membership.school.address || !membership.school.phone);
+
   return (
     <div className="flex h-screen overflow-hidden print:block print:h-auto print:overflow-visible">
       <div className="print:hidden">
@@ -38,6 +44,7 @@ export default async function AppLayout({ children }) {
       </div>
       <div className="flex flex-1 flex-col overflow-hidden print:block print:overflow-visible">
         <div className="print:hidden">
+          {needsSetup ? <SetupBanner /> : null}
           <Header
             school={membership.school}
             role={membership.role}

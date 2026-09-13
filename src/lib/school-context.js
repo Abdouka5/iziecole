@@ -22,7 +22,7 @@ export const getCurrentMembership = cache(async function getCurrentMembership() 
 
   const { data: school } = await supabase
     .from("schools")
-    .select("id, name, slug, subscription_plan")
+    .select("id, name, slug, subscription_plan, address, phone, logo_url")
     .eq("id", schoolId)
     .maybeSingle();
   if (!school) return null;

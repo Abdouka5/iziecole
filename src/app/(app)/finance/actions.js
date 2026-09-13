@@ -5,8 +5,9 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMembership } from "@/lib/school-context";
 
-function currentPeriodLabel() {
-  const label = new Date().toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+function periodLabelFromDate(dateString) {
+  const date = dateString ? new Date(dateString) : new Date();
+  const label = date.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
@@ -28,7 +29,8 @@ export async function recordPayment(formData) {
   const studentId = formData.get("studentId")?.toString();
   const amount = Number(formData.get("amount"));
   const method = formData.get("method")?.toString();
-  const periodLabel = formData.get("periodLabel")?.toString().trim() || currentPeriodLabel();
+  const periodDate = formData.get("periodDate")?.toString();
+  const periodLabel = periodLabelFromDate(periodDate);
 
   if (!studentId || !amount || amount <= 0 || !method) {
     redirect(`/finance?newPayment=1&error=${encodeURIComponent("Élève, montant et mode de paiement sont obligatoires.")}`);

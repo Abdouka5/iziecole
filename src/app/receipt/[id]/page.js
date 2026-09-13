@@ -22,7 +22,7 @@ export default async function ReceiptPage({ params }) {
   const { data: payment } = await supabase
     .from("payments")
     .select(
-      "id, amount, method, receipt_number, paid_at, notes, schools(name, phone, address), students(first_name, last_name, matricule), profiles(full_name), invoices(period_label)",
+      "id, amount, method, receipt_number, paid_at, notes, schools(name, phone, address, logo_url), students(first_name, last_name, matricule), profiles(full_name), invoices(period_label)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -38,7 +38,11 @@ export default async function ReceiptPage({ params }) {
       </div>
 
       <div className="w-[80mm] space-y-3 rounded-lg border bg-white p-4 text-[13px] leading-snug text-black shadow-sm print:w-full print:border-none print:shadow-none">
-        <div className="text-center">
+        <div className="flex flex-col items-center text-center">
+          {payment.schools?.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={payment.schools.logo_url} alt="" className="mb-1 h-12 w-12 object-contain" />
+          ) : null}
           <p className="text-base font-bold">{payment.schools?.name}</p>
           {payment.schools?.address ? <p>{payment.schools.address}</p> : null}
           {payment.schools?.phone ? <p>{payment.schools.phone}</p> : null}

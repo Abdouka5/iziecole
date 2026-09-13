@@ -35,6 +35,7 @@ import {
 } from "./school-actions";
 import { inviteUser, removeMembership } from "./user-actions";
 import { ensureDefaultSubjects, ensureDefaultLevels } from "@/lib/school-defaults";
+import { LogoUploader } from "./logo-uploader";
 
 const SUBSCRIPTION_STATUS_LABELS = {
   pending: "En attente",
@@ -188,7 +189,12 @@ function GeneralSection({ membership }) {
         <CardTitle className="text-base">Informations générales</CardTitle>
         <CardDescription>Modifiez les informations principales de votre établissement.</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-6">
+        <div className="space-y-2">
+          <Label>Logo de l&apos;établissement</Label>
+          <LogoUploader schoolId={school.id} currentUrl={school.logo_url} />
+        </div>
+
         <form action={updateSchoolInfo} className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="name">Nom de l&apos;établissement</Label>

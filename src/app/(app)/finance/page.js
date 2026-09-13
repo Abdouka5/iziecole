@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMembership } from "@/lib/school-context";
+import { calculateAge } from "@/lib/time";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/layout/stat-card";
 import { FormModal } from "@/components/layout/form-modal";
@@ -38,6 +39,7 @@ import {
 } from "@/components/ui/table";
 import { GroupedBarChart } from "@/components/charts/grouped-bar-chart";
 import { DonutChart } from "@/components/charts/donut-chart";
+import { StudentCombobox } from "./student-combobox";
 import { recordPayment } from "./actions";
 
 const MONTH_LABELS = [
@@ -80,11 +82,20 @@ export default async function FinancePage({ searchParams }) {
       .order("paid_at", { ascending: false }),
     supabase
       .from("students")
-      .select("id, first_name, last_name, matricule")
+      .select("id, first_name, last_name, matricule, birth_date, enrollments(classes(name))")
       .eq("school_id", schoolId)
       .eq("status", "active")
       .order("first_name"),
   ]);
+
+  const studentOptions = (students ?? []).map((s) => ({
+    id: s.id,
+    first_name: s.first_name,
+    last_name: s.last_name,
+    matricule: s.matricule,
+    className: s.enrollments?.[0]?.classes?.name ?? null,
+    age: calculateAge(s.birth_date),
+  }));
 
   const totalDue = (invoices ?? []).reduce((sum, i) => sum + Number(i.amount_due), 0);
   const totalPaid = (payments ?? []).reduce((sum, p) => sum + Number(p.amount), 0);
@@ -186,18 +197,7 @@ export default async function FinancePage({ searchParams }) {
         <form id="new-payment-form" action={recordPayment} className="space-y-4 py-2">
           <div className="space-y-2">
             <Label>Élève</Label>
-            <Select name="studentId" required>
-              <SelectTrigger>
-                <SelectValue placeholder="Rechercher un élève" />
-              </SelectTrigger>
-              <SelectContent>
-                {(students ?? []).map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.first_name} {s.last_name} — {s.matricule}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <StudentCombobox students={studentOptions} name="studentId" />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
@@ -221,8 +221,14 @@ export default async function FinancePage({ searchParams }) {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="periodLabel">Période</Label>
-            <Input id="periodLabel" name="periodLabel" placeholder="Octobre 2025" />
+            <Label htmlFor="periodDate">Période</Label>
+            <Input
+              id="periodDate"
+              name="periodDate"
+              type="date"
+              defaultValue={new Date().toISOString().slice(0, 10)}
+              required
+            />
           </div>
           {params.error ? <p className="text-sm text-destructive">{params.error}</p> : null}
         </form>

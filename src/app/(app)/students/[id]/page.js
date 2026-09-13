@@ -78,7 +78,11 @@ export default async function StudentDetailPage({ params }) {
         />
       </div>
 
-      <div className="hidden text-center print:block">
+      <div className="hidden flex-col items-center text-center print:flex">
+        {membership.school.logo_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={membership.school.logo_url} alt="" className="mb-2 h-14 w-14 object-contain" />
+        ) : null}
         <p className="text-lg font-bold">{membership.school.name}</p>
         <p className="text-sm text-muted-foreground">Fiche élève</p>
       </div>
