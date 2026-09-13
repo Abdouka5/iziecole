@@ -15,8 +15,9 @@ function fcfa(amount) {
   return `${Math.round(amount).toLocaleString("fr-FR")} FCFA`;
 }
 
-export default async function ReceiptPage({ params }) {
+export default async function ReceiptPage({ params, searchParams }) {
   const { id } = await params;
+  const { download } = await searchParams;
   const supabase = await createClient();
 
   const { data: payment } = await supabase
@@ -31,7 +32,7 @@ export default async function ReceiptPage({ params }) {
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-secondary/40 py-10 print:min-h-0 print:bg-white print:py-0">
-      <AutoPrint />
+      {download === "1" ? null : <AutoPrint />}
 
       <div className="mb-4 print:hidden">
         <PrintButton label="Imprimer le reçu" />

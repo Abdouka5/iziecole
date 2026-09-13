@@ -5,6 +5,7 @@ import {
   Scale,
   Plus,
   Printer,
+  Download,
   PartyPopper,
   Trash2,
 } from "lucide-react";
@@ -333,12 +334,13 @@ export default async function FinancePage({ searchParams }) {
                   <TableHead>Montant</TableHead>
                   <TableHead>Mode de paiement</TableHead>
                   <TableHead>Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(payments ?? []).length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="py-10 text-center text-muted-foreground">
+                    <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
                       Aucune transaction pour le moment.
                     </TableCell>
                   </TableRow>
@@ -354,6 +356,20 @@ export default async function FinancePage({ searchParams }) {
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {new Date(p.paid_at).toLocaleDateString("fr-FR")}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" asChild>
+                            <Link href={`/receipt/${p.id}?download=1`} target="_blank" aria-label="Télécharger le reçu">
+                              <Download className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                          <Button variant="ghost" size="icon" asChild>
+                            <Link href={`/receipt/${p.id}`} target="_blank" aria-label="Imprimer le reçu">
+                              <Printer className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
