@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   User,
@@ -13,11 +13,12 @@ import {
   Settings,
   Receipt,
   Building2,
-  Crown,
+  LogOut,
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 const COLLAPSE_STORAGE_KEY = "iziecole_sidebar_collapsed";
@@ -57,8 +58,16 @@ const NAV_BY_ROLE = {
 
 export function Sidebar({ role }) {
   const pathname = usePathname();
+  const router = useRouter();
   const items = NAV_BY_ROLE[role] ?? NAV_BY_ROLE.school_admin;
   const [collapsed, setCollapsed] = useState(false);
+
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   useEffect(() => {
     try {
@@ -123,23 +132,18 @@ export function Sidebar({ role }) {
       </nav>
 
       <div className={cn("space-y-3 border-t border-sidebar-border p-4", collapsed && "flex flex-col items-center px-2")}>
-        {!collapsed ? (
-          <div className="rounded-2xl bg-primary/10 p-4">
-            <Crown className="h-5 w-5 text-brand-saffron" />
-            <p className="mt-2 text-sm font-semibold text-foreground">Passez à Premium</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Plus de fonctionnalités pour votre école
-            </p>
-            <Link
-              href="/settings"
-              className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-            >
-              En savoir plus →
-            </Link>
-          </div>
-        ) : (
-          <Crown className="h-5 w-5 text-brand-saffron" />
-        )}
+        <button
+          type="button"
+          onClick={handleSignOut}
+          title={collapsed ? "Déconnexion" : undefined}
+          className={cn(
+            "flex items-center gap-3 rounded-[11px] px-3 py-2.5 text-base font-medium text-destructive transition-colors hover:bg-destructive/10",
+            collapsed && "justify-center px-0",
+          )}
+        >
+          <LogOut className="h-5 w-5 shrink-0" />
+          {!collapsed ? "Déconnexion" : null}
+        </button>
         {!collapsed ? (
           <>
             <div className="flex items-center justify-between text-xs text-muted-foreground">

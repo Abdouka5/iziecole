@@ -10,7 +10,7 @@ import {
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { PLAN_LABELS, PLAN_PRICES, formatFcfa } from "@/lib/subscription-plans";
+import { formatFcfa, SUBSCRIPTION_PRICE, SUBSCRIPTION_DURATION_DAYS } from "@/lib/subscription-plans";
 
 const MODULES = [
   {
@@ -44,14 +44,6 @@ const ACCENT_STYLES = {
   purple: { bg: "#f1ebfc", fg: "#7f56d9" },
   green: { bg: "#e7f6ec", fg: "#12b76a" },
   amber: { bg: "#fdf1e0", fg: "#f79009" },
-};
-
-const PLAN_ORDER = ["prescolaire", "elementaire", "college_lycee", "ecole_complete"];
-const PLAN_DESCRIPTIONS = {
-  prescolaire: "Niveau maternelle, élèves illimités",
-  elementaire: "Niveau primaire, élèves illimités",
-  college_lycee: "Secondaire, élèves illimités",
-  ecole_complete: "Tous niveaux réunis",
 };
 
 export default function LandingPage() {
@@ -122,43 +114,40 @@ export default function LandingPage() {
         </section>
 
         <section className="border-t bg-secondary/40 py-20">
-          <div className="mx-auto max-w-6xl px-6">
-            <div className="mx-auto mb-10 max-w-2xl text-center">
-              <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
-                Une formule pour chaque établissement
-              </h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Tous les modules sont inclus dans chaque formule — le prix dépend
-                seulement du niveau scolaire couvert.
-              </p>
-            </div>
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {PLAN_ORDER.map((plan) => (
-                <Card key={plan} className="flex flex-col">
-                  <CardContent className="flex flex-1 flex-col p-6">
-                    <h3 className="text-base font-semibold text-foreground">{PLAN_LABELS[plan]}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">{PLAN_DESCRIPTIONS[plan]}</p>
-                    <p className="mt-4 text-3xl font-bold text-foreground">
-                      {formatFcfa(PLAN_PRICES[plan])}
-                      <span className="text-sm font-normal text-muted-foreground">/mois</span>
-                    </p>
-                    <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-                      <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 shrink-0 text-status-good" />
-                        Élèves illimités
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 shrink-0 text-status-good" />
-                        Tous les modules inclus
-                      </li>
-                    </ul>
-                    <Button className="mt-6" variant="outline" asChild>
-                      <Link href="/signup">Choisir cette formule</Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+          <div className="mx-auto max-w-lg px-6 text-center">
+            <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
+              Un seul prix, tout inclus
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Toutes les fonctionnalités, de la Maternelle au Lycée, sans distinction de niveau.
+            </p>
+            <Card className="mt-8">
+              <CardContent className="flex flex-col items-center p-8">
+                <p className="text-4xl font-bold text-foreground">
+                  {formatFcfa(SUBSCRIPTION_PRICE)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  pour {SUBSCRIPTION_DURATION_DAYS} jours, renouvelable
+                </p>
+                <ul className="mt-6 space-y-2 text-left text-sm text-muted-foreground">
+                  <li className="flex items-center gap-2">
+                    <Check className="h-4 w-4 shrink-0 text-status-good" />
+                    Élèves illimités, tous niveaux
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="h-4 w-4 shrink-0 text-status-good" />
+                    Tous les modules inclus
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="h-4 w-4 shrink-0 text-status-good" />
+                    Renouvellement en ligne (Wave, Orange Money)
+                  </li>
+                </ul>
+                <Button className="mt-6 w-full" asChild>
+                  <Link href="/signup">Créer votre compte école</Link>
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </section>
       </main>

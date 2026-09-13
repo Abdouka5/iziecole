@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { PLAN_LABELS } from "@/lib/subscription-plans";
+import { ensureDefaultSubjects, ensureDefaultLevels } from "@/lib/school-defaults";
 
 function slugify(name) {
   return name
@@ -29,12 +29,11 @@ async function uniqueSlug(admin, baseSlug) {
 
 export async function signUpSchool(formData) {
   const schoolName = formData.get("schoolName")?.toString().trim();
-  const plan = formData.get("plan")?.toString();
   const email = formData.get("email")?.toString().trim();
   const phoneLocal = formData.get("phoneLocal")?.toString().trim();
   const password = formData.get("password")?.toString();
 
-  if (!schoolName || !plan || !PLAN_LABELS[plan] || !email || !password) {
+  if (!schoolName || !email || !password) {
     redirect(`/signup?error=${encodeURIComponent("Merci de remplir tous les champs.")}`);
   }
 
@@ -61,7 +60,7 @@ export async function signUpSchool(formData) {
 
   const { data: school, error: schoolError } = await admin
     .from("schools")
-    .insert({ name: schoolName, slug, subscription_plan: plan, phone })
+    .insert({ name: schoolName, slug, phone })
     .select("id")
     .single();
 
@@ -82,6 +81,11 @@ export async function signUpSchool(formData) {
   if (phone) {
     await admin.from("profiles").update({ phone }).eq("id", userId);
   }
+
+  await Promise.all([
+    ensureDefaultSubjects(admin, school.id),
+    ensureDefaultLevels(admin, school.id),
+  ]);
 
   if (authData.session) {
     redirect("/select-school");

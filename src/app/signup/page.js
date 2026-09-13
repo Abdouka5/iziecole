@@ -1,17 +1,12 @@
 import Link from "next/link";
-import { Building2, GraduationCap, Mail, Phone } from "lucide-react";
+import { Building2, Mail, Phone } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
-import { PLAN_LABELS } from "@/lib/subscription-plans";
-import { cn } from "@/lib/utils";
+import { formatFcfa, SUBSCRIPTION_PRICE } from "@/lib/subscription-plans";
 import { signUpSchool } from "./actions";
-
-const selectClassName = cn(
-  "h-8 w-full min-w-0 appearance-none rounded-lg border border-input bg-transparent pl-9 pr-2.5 py-1 text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30",
-);
 
 export default async function SignupPage({ searchParams }) {
   const { error } = await searchParams;
@@ -33,6 +28,9 @@ export default async function SignupPage({ searchParams }) {
           <p className="text-sm text-muted-foreground">
             Simplifiez la gestion de votre établissement avec iziecole.
           </p>
+          <p className="text-xs font-medium text-primary">
+            {formatFcfa(SUBSCRIPTION_PRICE)} — toutes les fonctionnalités, 30 jours
+          </p>
         </div>
 
         <form
@@ -44,23 +42,6 @@ export default async function SignupPage({ searchParams }) {
             <div className="relative">
               <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input id="schoolName" name="schoolName" required className="pl-9" />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="plan">Niveau de l&apos;établissement</Label>
-            <div className="relative">
-              <GraduationCap className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <select id="plan" name="plan" required defaultValue="" className={selectClassName}>
-                <option value="" disabled>
-                  Choisissez un niveau
-                </option>
-                {Object.entries(PLAN_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
             </div>
           </div>
 

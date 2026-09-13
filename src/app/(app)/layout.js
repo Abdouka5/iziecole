@@ -1,8 +1,11 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { getCurrentMembership } from "@/lib/school-context";
 import { createClient } from "@/lib/supabase/server";
+import { getSubscriptionStatus } from "@/lib/subscription-status";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { SubscriptionBlocked } from "@/components/layout/subscription-blocked";
 
 export default async function AppLayout({ children }) {
   const membership = await getCurrentMembership();
@@ -19,6 +22,15 @@ export default async function AppLayout({ children }) {
     .eq("recipient_id", user.id)
     .is("read_at", null);
 
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  const isSettingsPage = pathname.startsWith("/settings");
+
+  let blocked = false;
+  if (membership.role !== "super_admin" && !isSettingsPage) {
+    const { active } = await getSubscriptionStatus(supabase, membership.school.id);
+    blocked = !active;
+  }
+
   return (
     <div className="flex h-screen overflow-hidden print:block print:h-auto print:overflow-visible">
       <div className="print:hidden">
@@ -34,7 +46,7 @@ export default async function AppLayout({ children }) {
           />
         </div>
         <main className="flex-1 overflow-y-auto bg-secondary/30 p-6 print:overflow-visible print:bg-white print:p-0">
-          {children}
+          {blocked ? <SubscriptionBlocked canRenew={membership.role === "school_admin"} /> : children}
         </main>
       </div>
     </div>

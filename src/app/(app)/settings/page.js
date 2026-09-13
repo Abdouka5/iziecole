@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMembership } from "@/lib/school-context";
-import { PLAN_LABELS, PLAN_PRICES, formatFcfa } from "@/lib/subscription-plans";
+import Link from "next/link";
+import { formatFcfa, SUBSCRIPTION_PRICE } from "@/lib/subscription-plans";
+import { getSubscriptionStatus } from "@/lib/subscription-status";
+import { Download } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,10 +32,9 @@ import {
   setCurrentSchoolYear,
   createLevel,
   createSubject,
-  seedDefaultLevels,
-  seedDefaultSubjects,
 } from "./school-actions";
 import { inviteUser, removeMembership } from "./user-actions";
+import { ensureDefaultSubjects, ensureDefaultLevels } from "@/lib/school-defaults";
 
 const SUBSCRIPTION_STATUS_LABELS = {
   pending: "En attente",
@@ -98,50 +100,83 @@ export default async function SettingsPage({ searchParams }) {
 }
 
 async function SubscriptionSection({ supabase, membership }) {
-  const { data: payments } = await supabase
-    .from("subscription_payments")
-    .select("id, period_label, amount, status, created_at")
-    .eq("school_id", membership.school.id)
-    .order("created_at", { ascending: false })
-    .limit(6);
-
-  const plan = membership.school.subscription_plan;
+  const [{ data: payments }, status] = await Promise.all([
+    supabase
+      .from("subscription_payments")
+      .select("id, period_label, amount, status, created_at")
+      .eq("school_id", membership.school.id)
+      .order("created_at", { ascending: false })
+      .limit(6),
+    getSubscriptionStatus(supabase, membership.school.id),
+  ]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Abonnement iziecole</CardTitle>
-        <CardDescription>
-          {PLAN_LABELS[plan]} — {formatFcfa(PLAN_PRICES[plan])}/mois
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <form action={paySubscription}>
-          <Button type="submit">Payer l&apos;abonnement de ce mois</Button>
-        </form>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Abonnement iziecole</CardTitle>
+          <CardDescription>{formatFcfa(SUBSCRIPTION_PRICE)} — toutes les fonctionnalités, 30 jours</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <p className="text-sm font-medium">
+                {status.active ? "Abonnement actif" : "Abonnement expiré"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {status.active
+                  ? `Renouvellement le ${status.expiresAt.toLocaleDateString("fr-FR")} (${status.daysRemaining} jours restants)`
+                  : "L'accès aux autres pages est suspendu jusqu'au renouvellement."}
+              </p>
+            </div>
+            <Badge
+              variant="secondary"
+              className={status.active ? "bg-status-good/10 text-status-good" : "bg-status-critical/10 text-status-critical"}
+            >
+              {status.active ? "À jour" : "Expiré"}
+            </Badge>
+          </div>
 
-        {payments?.length ? (
-          <div className="space-y-2 pt-2">
-            <p className="text-sm font-medium">Derniers paiements</p>
-            <ul className="space-y-1 text-sm text-muted-foreground">
+          <form action={paySubscription}>
+            <Button type="submit">
+              {status.active ? "Renouveler par anticipation" : "Renouveler maintenant"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Historique des paiements</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {payments?.length ? (
+            <ul className="space-y-2 text-sm">
               {payments.map((p) => (
-                <li key={p.id} className="flex items-center justify-between">
-                  <span>{p.period_label}</span>
+                <li key={p.id} className="flex items-center justify-between border-b py-2 last:border-0">
+                  <span className="text-muted-foreground">{p.period_label}</span>
                   <span className="flex items-center gap-2">
                     {formatFcfa(Number(p.amount))}
                     <Badge variant={p.status === "paid" ? "default" : "secondary"}>
                       {SUBSCRIPTION_STATUS_LABELS[p.status] ?? p.status}
                     </Badge>
+                    {p.status === "paid" ? (
+                      <Button variant="ghost" size="icon" asChild>
+                        <Link href={`/invoice/${p.id}`} target="_blank" aria-label="Télécharger la facture">
+                          <Download className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                    ) : null}
                   </span>
                 </li>
               ))}
             </ul>
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">Aucun paiement enregistré pour l&apos;instant.</p>
-        )}
-      </CardContent>
-    </Card>
+          ) : (
+            <p className="text-sm text-muted-foreground">Aucun paiement enregistré pour l&apos;instant.</p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -222,23 +257,13 @@ async function YearSection({ supabase, schoolId, error }) {
           <CardTitle className="text-base">Ajouter une année scolaire</CardTitle>
         </CardHeader>
         <CardContent>
-          <form action={createSchoolYear} className="grid gap-4 sm:grid-cols-3">
+          <form action={createSchoolYear} className="flex flex-wrap items-end gap-4">
             <div className="space-y-2">
               <Label htmlFor="label">Libellé</Label>
               <Input id="label" name="label" placeholder="2025-2026" required />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="startDate">Début</Label>
-              <Input id="startDate" name="startDate" type="date" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="endDate">Fin</Label>
-              <Input id="endDate" name="endDate" type="date" required />
-            </div>
-            {error ? <p className="text-sm text-destructive sm:col-span-3">{error}</p> : null}
-            <div className="sm:col-span-3">
-              <Button type="submit">Ajouter</Button>
-            </div>
+            <Button type="submit">Ajouter</Button>
+            {error ? <p className="w-full text-sm text-destructive">{error}</p> : null}
           </form>
         </CardContent>
       </Card>
@@ -355,6 +380,8 @@ async function UsersSection({ supabase, schoolId, membership, params }) {
 }
 
 async function SubjectsSection({ supabase, schoolId, error }) {
+  await ensureDefaultSubjects(supabase, schoolId);
+
   const { data: subjects } = await supabase
     .from("subjects")
     .select("id, name, code")
@@ -364,13 +391,8 @@ async function SubjectsSection({ supabase, schoolId, error }) {
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-3">
+        <CardHeader>
           <CardTitle className="text-base">Matières</CardTitle>
-          <form action={seedDefaultSubjects}>
-            <Button type="submit" variant="outline" size="sm">
-              Ajouter les matières par défaut
-            </Button>
-          </form>
         </CardHeader>
         <CardContent className="space-y-2">
           {(subjects ?? []).length === 0 ? (
@@ -412,6 +434,8 @@ async function SubjectsSection({ supabase, schoolId, error }) {
 }
 
 async function LevelsSection({ supabase, schoolId, error }) {
+  await ensureDefaultLevels(supabase, schoolId);
+
   const { data: levels } = await supabase
     .from("levels")
     .select("id, name, cycle")
@@ -421,13 +445,8 @@ async function LevelsSection({ supabase, schoolId, error }) {
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-3">
+        <CardHeader>
           <CardTitle className="text-base">Niveaux scolaires</CardTitle>
-          <form action={seedDefaultLevels}>
-            <Button type="submit" variant="outline" size="sm">
-              Ajouter les niveaux par défaut
-            </Button>
-          </form>
         </CardHeader>
         <CardContent className="space-y-2">
           {(levels ?? []).length === 0 ? (

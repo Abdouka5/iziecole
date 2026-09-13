@@ -10,6 +10,12 @@ function isPublicPath(pathname) {
 }
 
 export async function updateSession(request) {
+  // Forwarded so Server Components can read the current path via
+  // headers() from next/headers — layouts don't otherwise get it, and the
+  // subscription gate in (app)/layout.js needs to know whether it's on
+  // /settings (always reachable, even when the subscription is expired).
+  request.headers.set("x-pathname", request.nextUrl.pathname);
+
   let response = NextResponse.next({ request });
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
