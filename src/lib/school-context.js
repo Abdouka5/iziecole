@@ -4,28 +4,20 @@ import { createClient } from "@/lib/supabase/server";
 
 export const SCHOOL_COOKIE = "iziecole_school_id";
 
-// Resolves { role, school } for the currently signed-in user from the
-// school_id stored in a cookie (set on /select-school). Super admins bypass
-// the memberships table entirely — they can view any school.
+// Resolves { role, school, fullName, userId } for the currently signed-in
+// user. Super admins don't need a selected school at all (the /admin
+// console is platform-wide) — `school` is just whichever one they're
+// currently impersonating via /admin/schools' "Voir", or null if none.
+// Everyone else needs the school_id cookie (set at login, or manually via
+// /select-school) to resolve to one of their memberships.
 // Wrapped in React's cache() so the layout and the page it renders share one
 // result instead of re-querying per request.
 export const getCurrentMembership = cache(async function getCurrentMembership() {
-  const cookieStore = await cookies();
-  const schoolId = cookieStore.get(SCHOOL_COOKIE)?.value;
-  if (!schoolId) return null;
-
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
-
-  const { data: school } = await supabase
-    .from("schools")
-    .select("id, name, slug, subscription_plan, address, phone, logo_url")
-    .eq("id", schoolId)
-    .maybeSingle();
-  if (!school) return null;
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -33,9 +25,24 @@ export const getCurrentMembership = cache(async function getCurrentMembership() 
     .eq("id", user.id)
     .maybeSingle();
 
+  const cookieStore = await cookies();
+  const schoolId = cookieStore.get(SCHOOL_COOKIE)?.value;
+
+  let school = null;
+  if (schoolId) {
+    const { data } = await supabase
+      .from("schools")
+      .select("id, name, slug, subscription_plan, address, phone, logo_url")
+      .eq("id", schoolId)
+      .maybeSingle();
+    school = data ?? null;
+  }
+
   if (profile?.is_super_admin) {
     return { role: "super_admin", school, fullName: profile.full_name, userId: user.id };
   }
+
+  if (!school) return null;
 
   const { data: membership } = await supabase
     .from("memberships")

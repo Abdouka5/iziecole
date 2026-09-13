@@ -5,7 +5,7 @@ import { AdminHeader } from "@/components/layout/admin-header";
 
 export default async function AdminLayout({ children }) {
   const membership = await getCurrentMembership();
-  if (!membership) redirect("/login");
+  if (!membership) redirect("/superadminlogin");
   if (membership.role !== "super_admin") redirect("/dashboard");
 
   return (

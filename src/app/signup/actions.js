@@ -1,10 +1,12 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureDefaultSubjects, ensureDefaultLevels } from "@/lib/school-defaults";
 import { slugify, uniqueSlug } from "@/lib/school-slug";
+import { SCHOOL_COOKIE } from "@/lib/school-context";
 
 export async function signUpSchool(formData) {
   const schoolName = formData.get("schoolName")?.toString().trim();
@@ -67,7 +69,14 @@ export async function signUpSchool(formData) {
   ]);
 
   if (authData.session) {
-    redirect("/select-school");
+    const cookieStore = await cookies();
+    cookieStore.set(SCHOOL_COOKIE, school.id, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+    redirect("/dashboard");
   }
 
   redirect(

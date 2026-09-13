@@ -13,6 +13,7 @@ import { PlatformAnnouncementBanner } from "@/components/layout/platform-announc
 export default async function AppLayout({ children }) {
   const membership = await getCurrentMembership();
   if (!membership) redirect("/select-school");
+  if (membership.role === "super_admin" && !membership.school) redirect("/admin/schools");
 
   const supabase = await createClient();
   const {
