@@ -2,6 +2,7 @@ import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/page-header";
 
 // Wireframe of the cashier workflow (§5.3): recherche élève -> paiement du
 // mois -> confirmation -> reçu thermique. Not wired to data yet — the
@@ -10,12 +11,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export default function CaissePage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-xl font-heading font-semibold text-brand-ink">Caisse du jour</h1>
-        <p className="text-sm text-muted-foreground">
-          Rechercher un élève, encaisser un paiement, imprimer le reçu.
-        </p>
-      </div>
+      <PageHeader
+        title="Caisse du jour"
+        subtitle="Rechercher un élève, encaisser un paiement, imprimer le reçu."
+      />
 
       <Card>
         <CardHeader>

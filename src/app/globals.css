@@ -151,15 +151,18 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* Unlayered on purpose: guarantees Inter wins over Tailwind's own layered
+   Preflight font-family reset on <html>, regardless of @layer ordering. */
+html {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
-  }
-  html {
-    @apply font-sans;
   }
 }
 

@@ -27,7 +27,7 @@ export default async function SignupPage({ searchParams }) {
         </div>
 
         <div className="space-y-1 text-center">
-          <h1 className="text-lg font-heading font-semibold text-brand-ink">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Créer votre compte école
           </h1>
           <p className="text-sm text-muted-foreground">

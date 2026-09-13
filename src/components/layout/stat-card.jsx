@@ -8,10 +8,10 @@ import { cn } from "@/lib/utils";
 // --chart-1..5) — keep a stat card's accent in sync with that same category
 // wherever it also appears in a chart.
 export const ACCENTS = {
-  blue: { bg: "#e8f1fa", fg: "#185fa5" },
-  green: { bg: "#e7f6ec", fg: "#16a34a" },
-  purple: { bg: "#f1ebfc", fg: "#7c3aed" },
-  amber: { bg: "#fdf1e0", fg: "#ef9f27" },
+  blue: { bg: "#e8f1fa", fg: "#146ef5" },
+  green: { bg: "#e7f6ec", fg: "#12b76a" },
+  purple: { bg: "#f1ebfc", fg: "#7f56d9" },
+  amber: { bg: "#fdf1e0", fg: "#f79009" },
   pink: { bg: "#fce8f1", fg: "#ec4899" },
 };
 
@@ -41,7 +41,7 @@ export function StatCard({
           </div>
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">{label}</p>
-            <p className="text-2xl font-heading font-bold text-brand-ink">{value}</p>
+            <p className="text-3xl font-bold tracking-tight text-foreground">{value}</p>
           </div>
         </div>
         {href ? <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" /> : null}

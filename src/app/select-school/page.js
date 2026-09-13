@@ -45,7 +45,7 @@ export default async function SelectSchoolPage() {
       <Logo className="text-2xl" />
 
       <div className="w-full max-w-md space-y-4">
-        <h1 className="text-center text-lg font-heading font-semibold text-brand-ink">
+        <h1 className="text-center text-2xl font-bold tracking-tight text-foreground">
           Choisissez un établissement
         </h1>
 

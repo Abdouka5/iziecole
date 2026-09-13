@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMembership } from "@/lib/school-context";
 import { PLAN_LABELS } from "@/lib/subscription-plans";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   Table,
   TableBody,
@@ -44,12 +45,7 @@ export default async function AdminSchoolsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-heading font-semibold text-brand-ink">Écoles</h1>
-        <p className="text-sm text-muted-foreground">
-          Toutes les écoles inscrites sur iziecole.
-        </p>
-      </div>
+      <PageHeader title="Écoles" subtitle="Toutes les écoles inscrites sur iziecole." />
 
       <Table>
         <TableHeader>
