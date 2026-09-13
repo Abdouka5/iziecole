@@ -116,14 +116,14 @@ export default async function FinancePage({ searchParams }) {
     const encaisse = (payments ?? [])
       .filter((p) => new Date(p.paid_at) >= monthStart && new Date(p.paid_at) < monthEnd)
       .reduce((sum, p) => sum + Number(p.amount), 0);
-    const attendu = (invoices ?? [])
-      .filter((i) => new Date(i.due_date) >= monthStart && new Date(i.due_date) < monthEnd)
-      .reduce((sum, i) => sum + Number(i.amount_due), 0);
-    return { month: label, encaisse, attendu };
+    const depenses = (expenses ?? [])
+      .filter((e) => new Date(e.expense_date) >= monthStart && new Date(e.expense_date) < monthEnd)
+      .reduce((sum, e) => sum + Number(e.amount), 0);
+    return { month: label, encaisse, depenses };
   });
   const evolutionConfig = {
     encaisse: { label: "Montant encaissé", color: "var(--chart-2)" },
-    attendu: { label: "Montant attendu", color: "var(--chart-1)" },
+    depenses: { label: "Dépenses", color: "var(--chart-4)" },
   };
 
   const methodTotals = {};
@@ -500,10 +500,10 @@ export default async function FinancePage({ searchParams }) {
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-base">Évolution des paiements</CardTitle>
+            <CardTitle className="text-base">Encaissements et dépenses</CardTitle>
           </CardHeader>
           <CardContent>
-            <GroupedBarChart data={evolutionData} config={evolutionConfig} series={["encaisse", "attendu"]} />
+            <GroupedBarChart data={evolutionData} config={evolutionConfig} series={["encaisse", "depenses"]} />
           </CardContent>
         </Card>
         <Card>
