@@ -29,6 +29,8 @@ import {
   setCurrentSchoolYear,
   createLevel,
   createSubject,
+  seedDefaultLevels,
+  seedDefaultSubjects,
 } from "./school-actions";
 import { inviteUser, removeMembership } from "./user-actions";
 
@@ -53,20 +55,6 @@ const ROLE_LABELS = {
   parent: "Parent",
   student: "Élève",
 };
-
-function ComingSoon({ title, description }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="py-8 text-center text-sm text-muted-foreground">
-        Bientôt disponible.
-      </CardContent>
-    </Card>
-  );
-}
 
 export default async function SettingsPage({ searchParams }) {
   const params = await searchParams;
@@ -102,18 +90,6 @@ export default async function SettingsPage({ searchParams }) {
           )}
           {section === "levels" && (
             <LevelsSection supabase={supabase} schoolId={schoolId} error={params.error} />
-          )}
-          {section === "notifications" && (
-            <ComingSoon title="Notifications" description="Préférences email, SMS et alertes." />
-          )}
-          {section === "backup" && (
-            <ComingSoon title="Sauvegarde" description="Export et restauration des données." />
-          )}
-          {section === "security" && (
-            <ComingSoon title="Sécurité" description="Accès et confidentialité." />
-          )}
-          {section === "import-export" && (
-            <ComingSoon title="Import / Export" description="Gestion des données en masse." />
           )}
         </div>
       </div>
@@ -388,8 +364,13 @@ async function SubjectsSection({ supabase, schoolId, error }) {
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-start justify-between gap-3">
           <CardTitle className="text-base">Matières</CardTitle>
+          <form action={seedDefaultSubjects}>
+            <Button type="submit" variant="outline" size="sm">
+              Ajouter les matières par défaut
+            </Button>
+          </form>
         </CardHeader>
         <CardContent className="space-y-2">
           {(subjects ?? []).length === 0 ? (
@@ -440,8 +421,13 @@ async function LevelsSection({ supabase, schoolId, error }) {
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-start justify-between gap-3">
           <CardTitle className="text-base">Niveaux scolaires</CardTitle>
+          <form action={seedDefaultLevels}>
+            <Button type="submit" variant="outline" size="sm">
+              Ajouter les niveaux par défaut
+            </Button>
+          </form>
         </CardHeader>
         <CardContent className="space-y-2">
           {(levels ?? []).length === 0 ? (

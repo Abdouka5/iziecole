@@ -6,10 +6,6 @@ import {
   Users,
   BookOpen,
   Layers,
-  Bell,
-  DatabaseBackup,
-  ShieldCheck,
-  ArrowLeftRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,10 +16,6 @@ const SECTIONS = [
   { id: "users", label: "Utilisateurs", description: "Comptes et rôles", icon: Users },
   { id: "subjects", label: "Matières", description: "Gestion des matières", icon: BookOpen },
   { id: "levels", label: "Niveaux scolaires", description: "Cycles et niveaux", icon: Layers },
-  { id: "notifications", label: "Notifications", description: "Email, SMS et alertes", icon: Bell },
-  { id: "backup", label: "Sauvegarde", description: "Données et restauration", icon: DatabaseBackup },
-  { id: "security", label: "Sécurité", description: "Accès et confidentialité", icon: ShieldCheck },
-  { id: "import-export", label: "Import / Export", description: "Gestion des données", icon: ArrowLeftRight },
 ];
 
 export { SECTIONS };
