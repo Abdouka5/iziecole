@@ -14,6 +14,22 @@ async function nextMatricule(supabase, schoolId) {
   return `IZ${year}${String((count ?? 0) + 1).padStart(3, "0")}`;
 }
 
+// Guardian rows arrive as guardian_name_<key>/guardian_phone_<key>/
+// guardian_relationship_<key> (see guardian-fields.jsx) — the key itself is
+// arbitrary, we just group by it.
+function parseGuardians(formData) {
+  const byKey = new Map();
+  for (const [field, value] of formData.entries()) {
+    const match = /^guardian_(name|phone|relationship)_(.+)$/.exec(field);
+    if (!match) continue;
+    const [, prop, key] = match;
+    const entry = byKey.get(key) ?? {};
+    entry[prop] = value?.toString().trim();
+    byKey.set(key, entry);
+  }
+  return [...byKey.values()].filter((g) => g.name);
+}
+
 export async function createStudent(formData) {
   const membership = await getCurrentMembership();
   const schoolId = membership.school.id;
@@ -22,7 +38,10 @@ export async function createStudent(formData) {
   const firstName = formData.get("firstName")?.toString().trim();
   const lastName = formData.get("lastName")?.toString().trim();
   const birthDate = formData.get("birthDate")?.toString() || null;
+  const birthPlace = formData.get("birthPlace")?.toString().trim() || null;
   const gender = formData.get("gender")?.toString() || null;
+  const address = formData.get("address")?.toString().trim() || null;
+  const guardians = parseGuardians(formData);
 
   if (!firstName || !lastName) {
     redirect(`/students?new=1&error=${encodeURIComponent("Prénom et nom sont obligatoires.")}`);
@@ -30,17 +49,36 @@ export async function createStudent(formData) {
 
   const matricule = await nextMatricule(supabase, schoolId);
 
-  const { error } = await supabase.from("students").insert({
-    school_id: schoolId,
-    first_name: firstName,
-    last_name: lastName,
-    birth_date: birthDate,
-    gender,
-    matricule,
-  });
+  const { data: student, error } = await supabase
+    .from("students")
+    .insert({
+      school_id: schoolId,
+      first_name: firstName,
+      last_name: lastName,
+      birth_date: birthDate,
+      birth_place: birthPlace,
+      address,
+      gender,
+      matricule,
+    })
+    .select("id")
+    .single();
 
   if (error) {
     redirect(`/students?new=1&error=${encodeURIComponent(error.message)}`);
+  }
+
+  if (guardians.length > 0) {
+    await supabase.from("guardians").insert(
+      guardians.map((g, i) => ({
+        school_id: schoolId,
+        student_id: student.id,
+        full_name: g.name,
+        phone: g.phone || null,
+        relationship: g.relationship || null,
+        is_primary: i === 0,
+      })),
+    );
   }
 
   revalidatePath("/students");

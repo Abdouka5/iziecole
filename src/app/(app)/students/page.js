@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Users, UserPlus, GraduationCap, Plus } from "lucide-react";
+import { Users, UserPlus, GraduationCap, Plus, Eye } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMembership } from "@/lib/school-context";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/layout/stat-card";
+import { FormModal } from "@/components/layout/form-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,15 +24,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { StudentFilters } from "./student-filters";
 import { DeleteStudentButton } from "./delete-student-button";
+import { GuardianFields } from "./guardian-fields";
 import { createStudent } from "./actions";
 
 const CYCLE_LABELS = {
@@ -113,53 +108,67 @@ export default async function StudentsPage({ searchParams }) {
         <StatCard icon={GraduationCap} label="Filles" value={girlsCount ?? 0} accent="pink" />
       </div>
 
-      {params.new ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Nouvel élève</CardTitle>
-            <CardDescription>
-              La classe pourra être assignée ensuite depuis la page Classes.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form action={createStudent} className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">Prénom</Label>
-                <Input id="firstName" name="firstName" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Nom</Label>
-                <Input id="lastName" name="lastName" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="birthDate">Date de naissance</Label>
-                <Input id="birthDate" name="birthDate" type="date" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="gender">Genre</Label>
-                <Select name="gender">
-                  <SelectTrigger id="gender">
-                    <SelectValue placeholder="Sélectionner" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="M">Garçon</SelectItem>
-                    <SelectItem value="F">Fille</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {params.error ? (
-                <p className="text-sm text-destructive sm:col-span-2">{params.error}</p>
-              ) : null}
-              <div className="flex gap-2 sm:col-span-2">
-                <Button type="submit">Créer l&apos;élève</Button>
-                <Button variant="outline" asChild>
-                  <Link href="/students">Annuler</Link>
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      ) : null}
+      <FormModal
+        open={Boolean(params.new)}
+        closeHref="/students"
+        title="Nouvel élève"
+        description="La classe pourra être assignée ensuite depuis la page Classes."
+        className="sm:max-w-2xl"
+        footer={
+          <>
+            <Button type="submit" form="new-student-form">
+              Créer l&apos;élève
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/students">Annuler</Link>
+            </Button>
+          </>
+        }
+      >
+        <form id="new-student-form" action={createStudent} className="space-y-5 py-2">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">Prénom</Label>
+              <Input id="firstName" name="firstName" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Nom</Label>
+              <Input id="lastName" name="lastName" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="birthDate">Date de naissance</Label>
+              <Input id="birthDate" name="birthDate" type="date" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="birthPlace">Lieu de naissance</Label>
+              <Input id="birthPlace" name="birthPlace" placeholder="Dakar" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="gender">Genre</Label>
+              <Select name="gender">
+                <SelectTrigger id="gender">
+                  <SelectValue placeholder="Sélectionner" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="M">Garçon</SelectItem>
+                  <SelectItem value="F">Fille</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="address">Adresse</Label>
+              <Input id="address" name="address" placeholder="Quartier, ville" />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Parents / Responsables</Label>
+            <GuardianFields />
+          </div>
+
+          {params.error ? <p className="text-sm text-destructive">{params.error}</p> : null}
+        </form>
+      </FormModal>
 
       <StudentFilters classes={classes ?? []} />
 
@@ -210,7 +219,14 @@ export default async function StudentsPage({ searchParams }) {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <DeleteStudentButton studentId={s.id} studentName={`${s.first_name} ${s.last_name}`} />
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="icon" asChild>
+                          <Link href={`/students/${s.id}`} aria-label={`Afficher ${s.first_name} ${s.last_name}`}>
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                        <DeleteStudentButton studentId={s.id} studentName={`${s.first_name} ${s.last_name}`} />
+                      </div>
                     </TableCell>
                   </TableRow>
                 );

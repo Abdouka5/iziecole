@@ -171,3 +171,9 @@ html {
     text-wrap: balance;
   }
 }
+
+@media print {
+  @page {
+    margin: 8mm;
+  }
+}

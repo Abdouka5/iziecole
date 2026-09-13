@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   Wallet,
   PiggyBank,
@@ -6,13 +7,25 @@ import {
   Plus,
   FileOutput,
   Download,
+  Printer,
+  PartyPopper,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMembership } from "@/lib/school-context";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/layout/stat-card";
+import { FormModal } from "@/components/layout/form-modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -25,6 +38,7 @@ import {
 } from "@/components/ui/table";
 import { GroupedBarChart } from "@/components/charts/grouped-bar-chart";
 import { DonutChart } from "@/components/charts/donut-chart";
+import { recordPayment } from "./actions";
 
 const MONTH_LABELS = [
   "Jan.", "Fév.", "Mars", "Avr.", "Mai", "Juin",
@@ -48,12 +62,13 @@ function fcfa(amount) {
   return `${Math.round(amount).toLocaleString("fr-FR")} FCFA`;
 }
 
-export default async function FinancePage() {
+export default async function FinancePage({ searchParams }) {
+  const params = await searchParams;
   const membership = await getCurrentMembership();
   const supabase = await createClient();
   const schoolId = membership.school.id;
 
-  const [{ data: invoices }, { data: payments }] = await Promise.all([
+  const [{ data: invoices }, { data: payments }, { data: students }] = await Promise.all([
     supabase
       .from("invoices")
       .select("id, amount_due, due_date, status, students(first_name, last_name, enrollments(classes(name)))")
@@ -63,6 +78,12 @@ export default async function FinancePage() {
       .select("id, amount, method, paid_at, students(first_name, last_name)")
       .eq("school_id", schoolId)
       .order("paid_at", { ascending: false }),
+    supabase
+      .from("students")
+      .select("id, first_name, last_name, matricule")
+      .eq("school_id", schoolId)
+      .eq("status", "active")
+      .order("first_name"),
   ]);
 
   const totalDue = (invoices ?? []).reduce((sum, i) => sum + Number(i.amount_due), 0);
@@ -121,9 +142,11 @@ export default async function FinancePage() {
         subtitle="Suivez les paiements, gérez les frais de scolarité et consultez vos rapports financiers."
         actions={
           <>
-            <Button variant="outline" disabled title="Bientôt disponible">
-              <Plus className="mr-1.5 h-4 w-4" />
-              Enregistrer un paiement
+            <Button asChild>
+              <Link href="/finance?newPayment=1">
+                <Plus className="mr-1.5 h-4 w-4" />
+                Ajouter un paiement
+              </Link>
             </Button>
             <Button variant="outline" disabled title="Bientôt disponible">
               <FileOutput className="mr-1.5 h-4 w-4" />
@@ -143,6 +166,95 @@ export default async function FinancePage() {
         <StatCard icon={Clock} label="Reste à encaisser" value={fcfa(remaining)} accent="amber" />
         <StatCard icon={TrendingUp} label="Taux de recouvrement" value={`${recoveryRate}%`} accent="purple" />
       </div>
+
+      <FormModal
+        open={Boolean(params.newPayment)}
+        closeHref="/finance"
+        title="Ajouter un paiement"
+        description="Un reçu imprimable (format thermique) sera proposé une fois le paiement enregistré."
+        footer={
+          <>
+            <Button type="submit" form="new-payment-form">
+              Enregistrer le paiement
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/finance">Annuler</Link>
+            </Button>
+          </>
+        }
+      >
+        <form id="new-payment-form" action={recordPayment} className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label>Élève</Label>
+            <Select name="studentId" required>
+              <SelectTrigger>
+                <SelectValue placeholder="Rechercher un élève" />
+              </SelectTrigger>
+              <SelectContent>
+                {(students ?? []).map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.first_name} {s.last_name} — {s.matricule}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="amount">Montant (FCFA)</Label>
+              <Input id="amount" name="amount" type="number" min="1" step="1" required />
+            </div>
+            <div className="space-y-2">
+              <Label>Mode de paiement</Label>
+              <Select name="method" required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="especes">Espèces</SelectItem>
+                  <SelectItem value="wave">Wave</SelectItem>
+                  <SelectItem value="orange_money">Orange Money</SelectItem>
+                  <SelectItem value="cheque">Chèque</SelectItem>
+                  <SelectItem value="virement">Virement</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="periodLabel">Période</Label>
+            <Input id="periodLabel" name="periodLabel" placeholder="Octobre 2025" />
+          </div>
+          {params.error ? <p className="text-sm text-destructive">{params.error}</p> : null}
+        </form>
+      </FormModal>
+
+      <FormModal
+        open={Boolean(params.receipt)}
+        closeHref="/finance"
+        title="Paiement enregistré"
+        footer={
+          <>
+            <Button asChild>
+              <Link href={`/receipt/${params.receipt}`} target="_blank">
+                <Printer className="mr-1.5 h-4 w-4" />
+                Imprimer le reçu
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/finance">Fermer</Link>
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center gap-2 py-6 text-center">
+          <PartyPopper className="h-8 w-8 text-status-good" />
+          <p className="text-sm text-muted-foreground">
+            Le paiement a bien été enregistré. Le reçu s&apos;ouvre dans un nouvel
+            onglet et lance automatiquement l&apos;impression (imprimante
+            thermique 58/80mm ou classique).
+          </p>
+        </div>
+      </FormModal>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">

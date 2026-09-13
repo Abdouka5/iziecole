@@ -15,3 +15,15 @@ export function timeAgo(date) {
   const value = Math.floor(seconds / divisor);
   return `Il y a ${value} ${unit}${value > 1 ? "s" : ""}`;
 }
+
+export function calculateAge(birthDate) {
+  if (!birthDate) return null;
+  const birth = new Date(birthDate);
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const monthDiff = now.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
+    age -= 1;
+  }
+  return age;
+}

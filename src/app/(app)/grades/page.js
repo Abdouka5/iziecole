@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { FileText, BarChart3, Users2, Award, PenSquare } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMembership } from "@/lib/school-context";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/layout/stat-card";
+import { FormModal } from "@/components/layout/form-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -60,6 +62,15 @@ export default async function GradesPage({ searchParams }) {
   const classId = params.classId;
   const termId = params.termId;
   const classSubjectId = params.subjectId;
+  const entryOpen = Boolean(params.entry);
+
+  const entryHrefParams = new URLSearchParams(
+    Object.entries(params).filter(([k]) => k !== "entry"),
+  );
+  entryHrefParams.set("entry", "1");
+  const closeEntryParams = new URLSearchParams(
+    Object.entries(params).filter(([k]) => k !== "entry"),
+  );
 
   const { data: classSubjectsRaw } = classId
     ? await supabase
@@ -121,15 +132,19 @@ export default async function GradesPage({ searchParams }) {
     subjectStats.set(name, entry);
   }
 
+  const readyToEnter = Boolean(classId && classSubjectId && termId);
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Notes & Bulletins"
         subtitle="Saisissez les notes, consultez les résultats et générez les bulletins."
         actions={
-          <Button>
-            <PenSquare className="mr-1.5 h-4 w-4" />
-            Saisir des notes
+          <Button asChild>
+            <Link href={`/grades?${entryHrefParams.toString()}`}>
+              <PenSquare className="mr-1.5 h-4 w-4" />
+              Saisir des notes
+            </Link>
           </Button>
         }
       />
@@ -143,67 +158,69 @@ export default async function GradesPage({ searchParams }) {
 
       <GradeFilters classes={classes ?? []} terms={terms ?? []} subjects={subjectOptions} />
 
-      <Tabs defaultValue="entry">
+      <FormModal
+        open={entryOpen}
+        closeHref={`/grades?${closeEntryParams.toString()}`}
+        title="Saisir des notes"
+        description={
+          readyToEnter
+            ? undefined
+            : "Choisissez une classe, une matière et une période dans les filtres ci-dessus, puis cliquez à nouveau sur «Saisir des notes»."
+        }
+        className="sm:max-w-xl"
+        footer={
+          readyToEnter && roster.length > 0 ? (
+            <>
+              <Button type="submit" form="grades-entry-form">
+                Enregistrer les notes
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href={`/grades?${closeEntryParams.toString()}`}>Annuler</Link>
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline" asChild>
+              <Link href={`/grades?${closeEntryParams.toString()}`}>Fermer</Link>
+            </Button>
+          )
+        }
+      >
+        {readyToEnter ? (
+          <form id="grades-entry-form" action={saveGrades} className="py-2">
+            <input type="hidden" name="classSubjectId" value={classSubjectId} />
+            <input type="hidden" name="termId" value={termId} />
+            {roster.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                Aucun élève inscrit dans cette classe.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {roster.map((s) => (
+                  <div key={s.id} className="flex items-center justify-between gap-3 rounded-lg border p-2.5">
+                    <span className="text-sm font-medium">{s.name}</span>
+                    <Input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      max="20"
+                      name={`score_${s.id}`}
+                      defaultValue={s.score}
+                      className="w-20"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </form>
+        ) : null}
+      </FormModal>
+
+      <Tabs defaultValue="results">
         <TabsList>
-          <TabsTrigger value="entry">Saisie des notes</TabsTrigger>
           <TabsTrigger value="results">Résultats par classe</TabsTrigger>
           <TabsTrigger value="bulletins">Bulletins</TabsTrigger>
           <TabsTrigger value="stats">Statistiques</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="entry">
-          {!classId || !classSubjectId || !termId ? (
-            <Card>
-              <CardContent className="py-10 text-center text-sm text-muted-foreground">
-                Choisissez une classe, une matière et une période pour saisir les notes.
-              </CardContent>
-            </Card>
-          ) : (
-            <form action={saveGrades} className="overflow-hidden rounded-2xl border bg-card">
-              <input type="hidden" name="classSubjectId" value={classSubjectId} />
-              <input type="hidden" name="termId" value={termId} />
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Élève</TableHead>
-                    <TableHead className="w-32">Note / 20</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {roster.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={2} className="py-10 text-center text-muted-foreground">
-                        Aucun élève inscrit dans cette classe.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    roster.map((s) => (
-                      <TableRow key={s.id}>
-                        <TableCell className="font-medium">{s.name}</TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            step="0.5"
-                            min="0"
-                            max="20"
-                            name={`score_${s.id}`}
-                            defaultValue={s.score}
-                            className="w-20"
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-              {roster.length > 0 ? (
-                <div className="flex justify-end border-t p-4">
-                  <Button type="submit">Enregistrer les notes</Button>
-                </div>
-              ) : null}
-            </form>
-          )}
-        </TabsContent>
 
         <TabsContent value="results">
           {!classId ? (
