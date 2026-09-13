@@ -39,11 +39,11 @@ export const getCurrentMembership = cache(async function getCurrentMembership() 
 
   const { data: membership } = await supabase
     .from("memberships")
-    .select("role")
+    .select("role, suspended")
     .eq("user_id", user.id)
     .eq("school_id", schoolId)
     .maybeSingle();
-  if (!membership) return null;
+  if (!membership || membership.suspended) return null;
 
   return { role: membership.role, school, fullName: profile?.full_name, userId: user.id };
 });

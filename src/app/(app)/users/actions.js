@@ -73,3 +73,50 @@ export async function removeMembership(formData) {
   await supabase.from("memberships").delete().eq("id", membershipId);
   revalidatePath("/users");
 }
+
+export async function toggleUserSuspension(formData) {
+  const membership = await getCurrentMembership();
+  if (membership.role !== "school_admin") return;
+
+  const membershipId = formData.get("membershipId")?.toString();
+  const suspended = formData.get("suspended")?.toString() === "true";
+  if (!membershipId) return;
+
+  const supabase = await createClient();
+  await supabase.from("memberships").update({ suspended }).eq("id", membershipId);
+  revalidatePath("/users");
+}
+
+// Full name/phone live on profiles, which RLS only lets a user edit for
+// themselves — the admin client is required to edit someone else's here.
+export async function updateUserAccount(formData) {
+  const membership = await getCurrentMembership();
+  if (membership.role !== "school_admin") {
+    redirect("/users");
+  }
+
+  const membershipId = formData.get("membershipId")?.toString();
+  const userId = formData.get("userId")?.toString();
+  const fullName = formData.get("fullName")?.toString().trim();
+  const phoneLocal = formData.get("phoneLocal")?.toString().trim();
+  const role = formData.get("role")?.toString();
+
+  if (!membershipId || !userId || !fullName || !role) {
+    redirect(`/users?edit=${membershipId}&error=${encodeURIComponent("Nom et rôle sont obligatoires.")}`);
+  }
+
+  const phone = phoneLocal ? `+221${phoneLocal.replace(/\D/g, "")}` : null;
+
+  const admin = createAdminClient();
+  await admin.from("profiles").update({ full_name: fullName, phone }).eq("id", userId);
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("memberships").update({ role }).eq("id", membershipId);
+
+  if (error) {
+    redirect(`/users?edit=${membershipId}&error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/users");
+  redirect("/users");
+}

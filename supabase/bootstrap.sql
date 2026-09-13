@@ -946,3 +946,12 @@ create policy "school admins manage staff directory" on public.staff
   for all using (public.has_role_in_school(school_id, 'school_admin'))
   with check (public.has_role_in_school(school_id, 'school_admin'));
 
+-- ============================================================
+-- 0015_membership_suspension.sql
+-- ============================================================
+-- Lets a school admin suspend a user's access to the school without
+-- deleting their account or data. Enforced in getCurrentMembership() (a
+-- suspended membership is treated the same as no membership at all).
+
+alter table public.memberships add column suspended boolean not null default false;
+

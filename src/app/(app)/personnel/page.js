@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, ShieldCheck, GraduationCap, Briefcase, Plus } from "lucide-react";
+import { Users, ShieldCheck, GraduationCap, Briefcase, Plus, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMembership } from "@/lib/school-context";
 import { PageHeader } from "@/components/layout/page-header";
@@ -24,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { addStaffMember, removeStaffMember } from "./actions";
+import { addStaffMember, updateStaffMember, removeStaffMember } from "./actions";
 
 const ROLE_LABELS = {
   school_admin: "Direction",
@@ -47,7 +47,7 @@ export default async function PersonnelPage({ searchParams }) {
 
   const { data: staff } = await supabase
     .from("staff")
-    .select("id, full_name, role, phone, email")
+    .select("id, full_name, role, phone")
     .eq("school_id", schoolId)
     .order("role");
 
@@ -55,6 +55,8 @@ export default async function PersonnelPage({ searchParams }) {
   for (const m of staff ?? []) {
     if (m.role in counts) counts[m.role] += 1;
   }
+
+  const editingStaff = params.edit ? (staff ?? []).find((s) => s.id === params.edit) ?? null : null;
 
   return (
     <div className="space-y-6">
@@ -115,16 +117,67 @@ export default async function PersonnelPage({ searchParams }) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="phoneLocal">Téléphone (optionnel)</Label>
               <div className="relative flex items-center">
                 <span className="pointer-events-none absolute left-3 text-sm text-muted-foreground">+221</span>
                 <Input id="phoneLocal" name="phoneLocal" type="tel" inputMode="numeric" placeholder="77 123 45 67" className="pl-12" />
               </div>
             </div>
+            {params.error ? <p className="text-sm text-destructive sm:col-span-2">{params.error}</p> : null}
+          </form>
+        </FormModal>
+      ) : null}
+
+      {isAdmin && editingStaff ? (
+        <FormModal
+          open
+          closeHref="/personnel"
+          title="Modifier le membre du personnel"
+          footer={
+            <>
+              <Button type="submit" form="edit-staff-form">
+                Enregistrer les modifications
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href="/personnel">Annuler</Link>
+              </Button>
+            </>
+          }
+        >
+          <form id="edit-staff-form" action={updateStaffMember} className="grid gap-4 py-2 sm:grid-cols-2">
+            <input type="hidden" name="staffId" value={editingStaff.id} />
             <div className="space-y-2">
-              <Label htmlFor="email">E-mail (optionnel)</Label>
-              <Input id="email" name="email" type="email" />
+              <Label htmlFor="editFullName">Nom complet</Label>
+              <Input id="editFullName" name="fullName" defaultValue={editingStaff.full_name} required />
+            </div>
+            <div className="space-y-2">
+              <Label>Rôle</Label>
+              <Select name="role" defaultValue={editingStaff.role} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="teacher">Enseignant</SelectItem>
+                  <SelectItem value="school_admin">Direction</SelectItem>
+                  <SelectItem value="cashier">Autre</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="editPhoneLocal">Téléphone (optionnel)</Label>
+              <div className="relative flex items-center">
+                <span className="pointer-events-none absolute left-3 text-sm text-muted-foreground">+221</span>
+                <Input
+                  id="editPhoneLocal"
+                  name="phoneLocal"
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder="77 123 45 67"
+                  className="pl-12"
+                  defaultValue={editingStaff.phone?.replace(/^\+221/, "") ?? ""}
+                />
+              </div>
             </div>
             {params.error ? <p className="text-sm text-destructive sm:col-span-2">{params.error}</p> : null}
           </form>
@@ -160,12 +213,19 @@ export default async function PersonnelPage({ searchParams }) {
                   </TableCell>
                   {isAdmin ? (
                     <TableCell className="text-right">
-                      <form action={removeStaffMember}>
-                        <input type="hidden" name="staffId" value={m.id} />
-                        <Button type="submit" variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                          Retirer
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="icon" asChild>
+                          <Link href={`/personnel?edit=${m.id}`} aria-label={`Modifier ${m.full_name}`}>
+                            <Pencil className="h-4 w-4" />
+                          </Link>
                         </Button>
-                      </form>
+                        <form action={removeStaffMember}>
+                          <input type="hidden" name="staffId" value={m.id} />
+                          <Button type="submit" variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                            Retirer
+                          </Button>
+                        </form>
+                      </div>
                     </TableCell>
                   ) : null}
                 </TableRow>

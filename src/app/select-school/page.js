@@ -36,7 +36,8 @@ export default async function SelectSchoolPage() {
     const { data } = await supabase
       .from("memberships")
       .select("role, school:schools(id, name, slug, subscription_plan)")
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .eq("suspended", false);
     schools = (data ?? []).map((m) => ({ ...m.school, role: m.role }));
   }
 
