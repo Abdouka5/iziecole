@@ -30,6 +30,16 @@ function parseGuardians(formData) {
   return [...byKey.values()].filter((g) => g.name);
 }
 
+async function currentSchoolYearId(supabase, schoolId) {
+  const { data } = await supabase
+    .from("school_years")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("is_current", true)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
 export async function createStudent(formData) {
   const membership = await getCurrentMembership();
   const schoolId = membership.school.id;
@@ -41,6 +51,7 @@ export async function createStudent(formData) {
   const birthPlace = formData.get("birthPlace")?.toString().trim() || null;
   const gender = formData.get("gender")?.toString() || null;
   const address = formData.get("address")?.toString().trim() || null;
+  const classId = formData.get("classId")?.toString() || null;
   const guardians = parseGuardians(formData);
 
   if (!firstName || !lastName) {
@@ -79,6 +90,69 @@ export async function createStudent(formData) {
         is_primary: i === 0,
       })),
     );
+  }
+
+  if (classId) {
+    const schoolYearId = await currentSchoolYearId(supabase, schoolId);
+    if (schoolYearId) {
+      await supabase.from("enrollments").insert({
+        school_id: schoolId,
+        student_id: student.id,
+        school_year_id: schoolYearId,
+        class_id: classId,
+        status: "active",
+      });
+    }
+  }
+
+  revalidatePath("/students");
+  redirect("/students");
+}
+
+export async function updateStudent(formData) {
+  const membership = await getCurrentMembership();
+  const schoolId = membership.school.id;
+  const supabase = await createClient();
+
+  const studentId = formData.get("studentId")?.toString();
+  const firstName = formData.get("firstName")?.toString().trim();
+  const lastName = formData.get("lastName")?.toString().trim();
+  const birthDate = formData.get("birthDate")?.toString() || null;
+  const birthPlace = formData.get("birthPlace")?.toString().trim() || null;
+  const gender = formData.get("gender")?.toString() || null;
+  const address = formData.get("address")?.toString().trim() || null;
+  const classId = formData.get("classId")?.toString() || null;
+
+  if (!studentId || !firstName || !lastName) {
+    redirect(`/students?edit=${studentId}&error=${encodeURIComponent("Prénom et nom sont obligatoires.")}`);
+  }
+
+  const { error } = await supabase
+    .from("students")
+    .update({
+      first_name: firstName,
+      last_name: lastName,
+      birth_date: birthDate,
+      birth_place: birthPlace,
+      address,
+      gender,
+    })
+    .eq("id", studentId);
+
+  if (error) {
+    redirect(`/students?edit=${studentId}&error=${encodeURIComponent(error.message)}`);
+  }
+
+  if (classId) {
+    const schoolYearId = await currentSchoolYearId(supabase, schoolId);
+    if (schoolYearId) {
+      await supabase
+        .from("enrollments")
+        .upsert(
+          { school_id: schoolId, student_id: studentId, school_year_id: schoolYearId, class_id: classId, status: "active" },
+          { onConflict: "student_id,school_year_id" },
+        );
+    }
   }
 
   revalidatePath("/students");

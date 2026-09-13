@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, UserPlus, GraduationCap, Plus, Eye } from "lucide-react";
+import { Users, UserPlus, GraduationCap, Plus, Eye, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMembership } from "@/lib/school-context";
 import { PageHeader } from "@/components/layout/page-header";
@@ -27,7 +27,7 @@ import {
 import { StudentFilters } from "./student-filters";
 import { DeleteStudentButton } from "./delete-student-button";
 import { GuardianFields } from "./guardian-fields";
-import { createStudent } from "./actions";
+import { createStudent, updateStudent } from "./actions";
 
 const CYCLE_LABELS = {
   maternelle: "Maternelle",
@@ -66,7 +66,7 @@ export default async function StudentsPage({ searchParams }) {
 
   let query = supabase
     .from("students")
-    .select("id, first_name, last_name, matricule, birth_date, gender, status, enrollments(classes(id, name, levels(cycle)))")
+    .select("id, first_name, last_name, matricule, birth_date, birth_place, address, gender, status, enrollments(classes(id, name, levels(cycle)))")
     .eq("school_id", schoolId)
     .order("created_at", { ascending: false });
 
@@ -85,6 +85,8 @@ export default async function StudentsPage({ searchParams }) {
 
   if (params.classId) students = students.filter((s) => s.class?.id === params.classId);
   if (params.cycle) students = students.filter((s) => s.class?.levels?.cycle === params.cycle);
+
+  const editingStudent = params.edit ? students.find((s) => s.id === params.edit) ?? null : null;
 
   return (
     <div className="space-y-6">
@@ -112,7 +114,6 @@ export default async function StudentsPage({ searchParams }) {
         open={Boolean(params.new)}
         closeHref="/students"
         title="Nouvel élève"
-        description="La classe pourra être assignée ensuite depuis la page Classes."
         className="sm:max-w-2xl"
         footer={
           <>
@@ -159,6 +160,21 @@ export default async function StudentsPage({ searchParams }) {
               <Label htmlFor="address">Adresse</Label>
               <Input id="address" name="address" placeholder="Quartier, ville" />
             </div>
+            <div className="space-y-2">
+              <Label>Classe (optionnel)</Label>
+              <Select name="classId">
+                <SelectTrigger id="classId">
+                  <SelectValue placeholder="Sélectionner" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(classes ?? []).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -169,6 +185,79 @@ export default async function StudentsPage({ searchParams }) {
           {params.error ? <p className="text-sm text-destructive">{params.error}</p> : null}
         </form>
       </FormModal>
+
+      {editingStudent ? (
+        <FormModal
+          open
+          closeHref="/students"
+          title="Modifier l'élève"
+          className="sm:max-w-2xl"
+          footer={
+            <>
+              <Button type="submit" form="edit-student-form">
+                Enregistrer les modifications
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href="/students">Annuler</Link>
+              </Button>
+            </>
+          }
+        >
+          <form id="edit-student-form" action={updateStudent} className="space-y-5 py-2">
+            <input type="hidden" name="studentId" value={editingStudent.id} />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="editFirstName">Prénom</Label>
+                <Input id="editFirstName" name="firstName" defaultValue={editingStudent.first_name} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editLastName">Nom</Label>
+                <Input id="editLastName" name="lastName" defaultValue={editingStudent.last_name} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editBirthDate">Date de naissance</Label>
+                <Input id="editBirthDate" name="birthDate" type="date" defaultValue={editingStudent.birth_date ?? ""} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editBirthPlace">Lieu de naissance</Label>
+                <Input id="editBirthPlace" name="birthPlace" defaultValue={editingStudent.birth_place ?? ""} placeholder="Dakar" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editGender">Genre</Label>
+                <Select name="gender" defaultValue={editingStudent.gender ?? undefined}>
+                  <SelectTrigger id="editGender">
+                    <SelectValue placeholder="Sélectionner" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="M">Garçon</SelectItem>
+                    <SelectItem value="F">Fille</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editAddress">Adresse</Label>
+                <Input id="editAddress" name="address" defaultValue={editingStudent.address ?? ""} placeholder="Quartier, ville" />
+              </div>
+              <div className="space-y-2">
+                <Label>Classe</Label>
+                <Select name="classId" defaultValue={editingStudent.class?.id ?? undefined}>
+                  <SelectTrigger id="editClassId">
+                    <SelectValue placeholder="Sélectionner" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(classes ?? []).map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {params.error ? <p className="text-sm text-destructive">{params.error}</p> : null}
+          </form>
+        </FormModal>
+      ) : null}
 
       <StudentFilters classes={classes ?? []} />
 
@@ -223,6 +312,11 @@ export default async function StudentsPage({ searchParams }) {
                         <Button variant="ghost" size="icon" asChild>
                           <Link href={`/students/${s.id}`} aria-label={`Afficher ${s.first_name} ${s.last_name}`}>
                             <Eye className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                        <Button variant="ghost" size="icon" asChild>
+                          <Link href={`/students?edit=${s.id}`} aria-label={`Modifier ${s.first_name} ${s.last_name}`}>
+                            <Pencil className="h-4 w-4" />
                           </Link>
                         </Button>
                         <DeleteStudentButton studentId={s.id} studentName={`${s.first_name} ${s.last_name}`} />

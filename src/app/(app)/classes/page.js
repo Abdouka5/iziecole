@@ -50,7 +50,7 @@ export default async function ClassesPage({ searchParams }) {
   ] = await Promise.all([
     supabase
       .from("classes")
-      .select("id, name, capacity, levels(name, cycle), head_teacher:profiles(full_name)")
+      .select("id, name, monthly_fee, levels(name, cycle), head_teacher:profiles(full_name)")
       .eq("school_id", schoolId)
       .order("name"),
     supabase.from("students").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("status", "active"),
@@ -139,8 +139,8 @@ export default async function ClassesPage({ searchParams }) {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="capacity">Capacité (optionnel)</Label>
-              <Input id="capacity" name="capacity" type="number" min="1" placeholder="30" />
+              <Label htmlFor="monthlyFee">Frais mensualité (FCFA, optionnel)</Label>
+              <Input id="monthlyFee" name="monthlyFee" type="number" min="0" step="1" placeholder="25000" />
             </div>
             <div className="space-y-2">
               <Label>Enseignant principal (optionnel)</Label>
@@ -169,13 +169,14 @@ export default async function ClassesPage({ searchParams }) {
               <TableHead>Classe</TableHead>
               <TableHead>Niveau</TableHead>
               <TableHead>Effectif</TableHead>
+              <TableHead>Frais mensuel</TableHead>
               <TableHead>Enseignant principal</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {(classes ?? []).length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="py-10 text-center text-muted-foreground">
+                <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
                   Aucune classe pour le moment.
                 </TableCell>
               </TableRow>
@@ -188,9 +189,9 @@ export default async function ClassesPage({ searchParams }) {
                       {CYCLE_LABELS[klass.levels?.cycle] ?? klass.levels?.name}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    {enrollmentCountByClass.get(klass.id) ?? 0}
-                    {klass.capacity ? ` / ${klass.capacity}` : ""}
+                  <TableCell>{enrollmentCountByClass.get(klass.id) ?? 0}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {klass.monthly_fee ? `${Math.round(Number(klass.monthly_fee)).toLocaleString("fr-FR")} FCFA` : "—"}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {klass.head_teacher?.full_name ?? "—"}

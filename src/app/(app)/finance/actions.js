@@ -128,3 +128,41 @@ export async function recordPayment(formData) {
   revalidatePath("/finance");
   redirect(`/finance?receipt=${payment.id}`);
 }
+
+export async function createExpense(formData) {
+  const membership = await getCurrentMembership();
+  const schoolId = membership.school.id;
+  const supabase = await createClient();
+
+  const label = formData.get("label")?.toString().trim();
+  const amount = Number(formData.get("amount"));
+  const expenseDate = formData.get("expenseDate")?.toString() || new Date().toISOString().slice(0, 10);
+
+  if (!label || !amount || amount <= 0) {
+    redirect(`/finance?newExpense=1&error=${encodeURIComponent("Libellé et montant sont obligatoires.")}`);
+  }
+
+  const { error } = await supabase.from("expenses").insert({
+    school_id: schoolId,
+    label,
+    amount,
+    expense_date: expenseDate,
+    recorded_by: membership.userId,
+  });
+
+  if (error) {
+    redirect(`/finance?newExpense=1&error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/finance");
+  redirect("/finance");
+}
+
+export async function deleteExpense(formData) {
+  const supabase = await createClient();
+  const expenseId = formData.get("expenseId")?.toString();
+  if (!expenseId) return;
+
+  await supabase.from("expenses").delete().eq("id", expenseId);
+  revalidatePath("/finance");
+}

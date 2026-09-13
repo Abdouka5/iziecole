@@ -13,7 +13,7 @@ export async function createClass(formData) {
   const name = formData.get("name")?.toString().trim();
   const levelId = formData.get("levelId")?.toString();
   const schoolYearId = formData.get("schoolYearId")?.toString();
-  const capacity = formData.get("capacity")?.toString();
+  const monthlyFee = formData.get("monthlyFee")?.toString();
   const headTeacherId = formData.get("headTeacherId")?.toString() || null;
 
   if (!name || !levelId || !schoolYearId) {
@@ -25,7 +25,7 @@ export async function createClass(formData) {
     school_year_id: schoolYearId,
     level_id: levelId,
     name,
-    capacity: capacity ? Number(capacity) : null,
+    monthly_fee: monthlyFee ? Number(monthlyFee) : null,
     head_teacher_id: headTeacherId,
   });
 

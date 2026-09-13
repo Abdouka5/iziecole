@@ -31,46 +31,44 @@ export function StatCard({
 
   const body = (
     <Card
-      className="relative h-full border-0"
+      className="relative h-full overflow-hidden border-0"
       style={{ background: `linear-gradient(135deg, ${bg} 0%, var(--card) 75%)` }}
     >
       <Icon
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-5 -right-5 h-28 w-28 opacity-[0.14]"
+        className="pointer-events-none absolute -bottom-3 -right-3 h-16 w-16 opacity-[0.14]"
         style={{ color: fg }}
       />
-      <CardContent className="relative flex h-full flex-1 flex-col gap-4 p-4">
-        <div className="flex items-start justify-between">
+      <CardContent className="relative flex h-full flex-col justify-center gap-1.5 p-4">
+        <div className="flex items-center gap-3">
           <div
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white"
             style={{ backgroundColor: fg }}
           >
             <Icon className="h-5 w-5" />
           </div>
-          {href ? <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" /> : null}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm text-muted-foreground">{label}</p>
+            <p className="text-2xl font-bold tracking-tight text-foreground">{value}</p>
+          </div>
+          {href ? <ChevronRight className="h-4 w-4 shrink-0 self-start text-muted-foreground" /> : null}
         </div>
-        <div className="space-y-1">
-          <p className="text-sm text-muted-foreground">{label}</p>
-          <p className="text-3xl font-bold tracking-tight text-foreground">{value}</p>
-        </div>
-        <div className="mt-auto min-h-[1.25rem]">
-          {badge ? (
-            <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
-              {badge}
-            </Badge>
-          ) : trend != null ? (
-            <p
-              className={cn(
-                "flex items-center gap-1 text-xs font-medium",
-                trendDirection === "up" ? "text-emerald-600" : "text-red-600",
-              )}
-            >
-              <TrendIcon className="h-3 w-3" />
-              {trend}
-              {trendLabel ? <span className="font-normal text-muted-foreground">{trendLabel}</span> : null}
-            </p>
-          ) : null}
-        </div>
+        {badge ? (
+          <Badge variant="secondary" className="w-fit bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+            {badge}
+          </Badge>
+        ) : trend != null ? (
+          <p
+            className={cn(
+              "flex items-center gap-1 text-xs font-medium",
+              trendDirection === "up" ? "text-emerald-600" : "text-red-600",
+            )}
+          >
+            <TrendIcon className="h-3 w-3" />
+            {trend}
+            {trendLabel ? <span className="font-normal text-muted-foreground">{trendLabel}</span> : null}
+          </p>
+        ) : null}
       </CardContent>
     </Card>
   );

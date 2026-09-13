@@ -1,14 +1,14 @@
 import Link from "next/link";
 import {
-  Wallet,
   PiggyBank,
-  Clock,
-  TrendingUp,
+  Receipt,
+  Scale,
   Plus,
   FileOutput,
   Download,
   Printer,
   PartyPopper,
+  Trash2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMembership } from "@/lib/school-context";
@@ -40,7 +40,7 @@ import {
 import { GroupedBarChart } from "@/components/charts/grouped-bar-chart";
 import { DonutChart } from "@/components/charts/donut-chart";
 import { StudentCombobox } from "./student-combobox";
-import { recordPayment } from "./actions";
+import { recordPayment, createExpense, deleteExpense } from "./actions";
 
 const MONTH_LABELS = [
   "Jan.", "Fév.", "Mars", "Avr.", "Mai", "Juin",
@@ -70,7 +70,7 @@ export default async function FinancePage({ searchParams }) {
   const supabase = await createClient();
   const schoolId = membership.school.id;
 
-  const [{ data: invoices }, { data: payments }, { data: students }] = await Promise.all([
+  const [{ data: invoices }, { data: payments }, { data: students }, { data: expenses }] = await Promise.all([
     supabase
       .from("invoices")
       .select("id, amount_due, due_date, status, students(first_name, last_name, enrollments(classes(name)))")
@@ -86,7 +86,14 @@ export default async function FinancePage({ searchParams }) {
       .eq("school_id", schoolId)
       .eq("status", "active")
       .order("first_name"),
+    supabase
+      .from("expenses")
+      .select("id, label, amount, expense_date")
+      .eq("school_id", schoolId)
+      .order("expense_date", { ascending: false }),
   ]);
+
+  const isAdmin = membership.role === "school_admin";
 
   const studentOptions = (students ?? []).map((s) => ({
     id: s.id,
@@ -99,8 +106,8 @@ export default async function FinancePage({ searchParams }) {
 
   const totalDue = (invoices ?? []).reduce((sum, i) => sum + Number(i.amount_due), 0);
   const totalPaid = (payments ?? []).reduce((sum, p) => sum + Number(p.amount), 0);
-  const remaining = Math.max(0, totalDue - totalPaid);
-  const recoveryRate = totalDue > 0 ? Math.round((totalPaid / totalDue) * 100) : 0;
+  const totalExpenses = (expenses ?? []).reduce((sum, e) => sum + Number(e.amount), 0);
+  const balance = totalPaid - totalExpenses;
 
   const months = lastNMonthStarts(6);
   const evolutionData = months.map((monthStart) => {
@@ -159,6 +166,12 @@ export default async function FinancePage({ searchParams }) {
                 Ajouter un paiement
               </Link>
             </Button>
+            <Button variant="outline" asChild>
+              <Link href="/finance?newExpense=1">
+                <Receipt className="mr-1.5 h-4 w-4" />
+                Ajouter une dépense
+              </Link>
+            </Button>
             <Button variant="outline" disabled title="Bientôt disponible">
               <FileOutput className="mr-1.5 h-4 w-4" />
               Générer une facture
@@ -171,11 +184,10 @@ export default async function FinancePage({ searchParams }) {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Wallet} label="Montant total attendu" value={fcfa(totalDue)} accent="blue" />
+      <div className="grid gap-4 sm:grid-cols-3">
         <StatCard icon={PiggyBank} label="Montant encaissé" value={fcfa(totalPaid)} accent="green" />
-        <StatCard icon={Clock} label="Reste à encaisser" value={fcfa(remaining)} accent="amber" />
-        <StatCard icon={TrendingUp} label="Taux de recouvrement" value={`${recoveryRate}%`} accent="purple" />
+        <StatCard icon={Receipt} label="Dépenses" value={fcfa(totalExpenses)} accent="amber" />
+        <StatCard icon={Scale} label="Solde" value={fcfa(balance)} accent="purple" />
       </div>
 
       <FormModal
@@ -262,6 +274,47 @@ export default async function FinancePage({ searchParams }) {
         </div>
       </FormModal>
 
+      <FormModal
+        open={Boolean(params.newExpense)}
+        closeHref="/finance"
+        title="Ajouter une dépense"
+        description="Enregistrez une dépense de fonctionnement (salaires, fournitures, entretien...)."
+        footer={
+          <>
+            <Button type="submit" form="new-expense-form">
+              Enregistrer la dépense
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/finance">Annuler</Link>
+            </Button>
+          </>
+        }
+      >
+        <form id="new-expense-form" action={createExpense} className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label htmlFor="label">Libellé</Label>
+            <Input id="label" name="label" placeholder="Achat fournitures" required />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="expenseAmount">Montant (FCFA)</Label>
+              <Input id="expenseAmount" name="amount" type="number" min="1" step="1" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="expenseDate">Date</Label>
+              <Input
+                id="expenseDate"
+                name="expenseDate"
+                type="date"
+                defaultValue={new Date().toISOString().slice(0, 10)}
+                required
+              />
+            </div>
+          </div>
+          {params.error ? <p className="text-sm text-destructive">{params.error}</p> : null}
+        </form>
+      </FormModal>
+
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
@@ -301,6 +354,7 @@ export default async function FinancePage({ searchParams }) {
       <Tabs defaultValue="recent">
         <TabsList>
           <TabsTrigger value="recent">Transactions récentes</TabsTrigger>
+          <TabsTrigger value="expenses">Dépenses</TabsTrigger>
           <TabsTrigger value="overdue">Élèves en retard</TabsTrigger>
           <TabsTrigger value="byClass">Par classe</TabsTrigger>
           <TabsTrigger value="reports">Rapports</TabsTrigger>
@@ -337,6 +391,50 @@ export default async function FinancePage({ searchParams }) {
                       <TableCell className="text-muted-foreground">
                         {new Date(p.paid_at).toLocaleDateString("fr-FR")}
                       </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="expenses">
+          <div className="overflow-x-auto rounded-2xl border bg-card">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Libellé</TableHead>
+                  <TableHead>Montant</TableHead>
+                  <TableHead>Date</TableHead>
+                  {isAdmin ? <TableHead className="text-right">Actions</TableHead> : null}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(expenses ?? []).length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={isAdmin ? 4 : 3} className="py-10 text-center text-muted-foreground">
+                      Aucune dépense enregistrée pour le moment.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  expenses.map((e) => (
+                    <TableRow key={e.id}>
+                      <TableCell className="font-medium">{e.label}</TableCell>
+                      <TableCell>{fcfa(Number(e.amount))}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {new Date(e.expense_date).toLocaleDateString("fr-FR")}
+                      </TableCell>
+                      {isAdmin ? (
+                        <TableCell className="text-right">
+                          <form action={deleteExpense}>
+                            <input type="hidden" name="expenseId" value={e.id} />
+                            <Button type="submit" variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </form>
+                        </TableCell>
+                      ) : null}
                     </TableRow>
                   ))
                 )}
