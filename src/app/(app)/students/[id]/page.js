@@ -100,6 +100,23 @@ function GuardianCard({ guardian, tone }) {
   );
 }
 
+export async function generateMetadata({ params }) {
+  const { id } = await params;
+  const membership = await getCurrentMembership();
+  const supabase = await createClient();
+
+  const { data: student } = await supabase
+    .from("students")
+    .select("first_name, last_name")
+    .eq("id", id)
+    .eq("school_id", membership.school.id)
+    .maybeSingle();
+
+  return {
+    title: student ? `Fiche Élève - ${student.first_name} ${student.last_name}` : "Fiche élève",
+  };
+}
+
 export default async function StudentDetailPage({ params }) {
   const { id } = await params;
   const membership = await getCurrentMembership();

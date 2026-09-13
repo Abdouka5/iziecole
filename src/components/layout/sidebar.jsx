@@ -11,6 +11,7 @@ import {
   Wallet,
   CalendarClock,
   Briefcase,
+  KeyRound,
   Settings,
   Receipt,
   Building2,
@@ -39,6 +40,7 @@ const NAV_BY_ROLE = {
     { href: "/finance", label: "Finances", icon: Wallet },
     { href: "/schedule", label: "Emploi du temps", icon: CalendarClock },
     { href: "/personnel", label: "Personnel", icon: Briefcase },
+    { href: "/users", label: "Utilisateurs", icon: KeyRound },
     { href: "/settings", label: "Paramètres", icon: Settings },
   ],
   teacher: [

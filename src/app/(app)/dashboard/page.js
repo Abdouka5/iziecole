@@ -29,8 +29,6 @@ const CYCLE_LABELS = {
 };
 const CYCLE_ORDER = ["maternelle", "primaire", "college", "lycee"];
 
-const STAFF_ROLES = ["school_admin", "teacher", "cashier"];
-
 function lastNMonthStarts(n) {
   const now = new Date();
   return Array.from({ length: n }, (_, i) => new Date(now.getFullYear(), now.getMonth() - (n - 1 - i), 1));
@@ -58,7 +56,7 @@ export default async function DashboardPage() {
     supabase.from("students").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("status", "active"),
     supabase.from("students").select("id", { count: "exact", head: true }).eq("school_id", schoolId).gte("created_at", startOfMonth),
     supabase.from("classes").select("id", { count: "exact", head: true }).eq("school_id", schoolId),
-    supabase.from("memberships").select("id", { count: "exact", head: true }).eq("school_id", schoolId).in("role", STAFF_ROLES),
+    supabase.from("staff").select("id", { count: "exact", head: true }).eq("school_id", schoolId),
     supabase.from("school_years").select("label").eq("school_id", schoolId).eq("is_current", true).maybeSingle(),
     supabase.from("students").select("created_at").eq("school_id", schoolId),
     supabase.from("enrollments").select("student_id, classes(levels(cycle))").eq("school_id", schoolId).eq("status", "active"),
