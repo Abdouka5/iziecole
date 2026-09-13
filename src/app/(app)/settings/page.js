@@ -33,7 +33,6 @@ import {
   createLevel,
   createSubject,
 } from "./school-actions";
-import { inviteUser, removeMembership } from "./user-actions";
 import { ensureDefaultSubjects, ensureDefaultLevels } from "@/lib/school-defaults";
 import { LogoUploader } from "./logo-uploader";
 
@@ -50,14 +49,6 @@ const CYCLE_OPTIONS = [
   { value: "college", label: "Collège" },
   { value: "lycee", label: "Lycée" },
 ];
-
-const ROLE_LABELS = {
-  school_admin: "Direction",
-  teacher: "Enseignant",
-  cashier: "Caissier",
-  parent: "Parent",
-  student: "Élève",
-};
 
 export default async function SettingsPage({ searchParams }) {
   const params = await searchParams;
@@ -84,9 +75,6 @@ export default async function SettingsPage({ searchParams }) {
           {section === "general" && <GeneralSection membership={membership} />}
           {section === "year" && (
             <YearSection supabase={supabase} schoolId={schoolId} error={params.error} />
-          )}
-          {section === "users" && (
-            <UsersSection supabase={supabase} schoolId={schoolId} membership={membership} params={params} />
           )}
           {section === "subjects" && (
             <SubjectsSection supabase={supabase} schoolId={schoolId} error={params.error} />
@@ -273,114 +261,6 @@ async function YearSection({ supabase, schoolId, error }) {
           </form>
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-async function UsersSection({ supabase, schoolId, membership, params }) {
-  const { data: members } = await supabase
-    .from("memberships")
-    .select("id, role, user_id, profiles(full_name, phone)")
-    .eq("school_id", schoolId);
-
-  const isAdmin = membership.role === "school_admin";
-
-  return (
-    <div className="space-y-4">
-      {params.created ? (
-        <Card className="border-status-good/30 bg-status-good/5">
-          <CardContent className="py-4 text-sm">
-            Compte créé pour <strong>{params.created}</strong>. Partagez-lui son
-            e-mail et le mot de passe temporaire que vous avez défini pour qu&apos;il
-            puisse se connecter sur <code>/login</code>.
-          </CardContent>
-        </Card>
-      ) : null}
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Utilisateurs</CardTitle>
-          <CardDescription>Comptes ayant accès à cet établissement.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {(members ?? []).length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucun utilisateur pour le moment.</p>
-          ) : (
-            members.map((m) => (
-              <div key={m.id} className="flex items-center justify-between rounded-lg border p-3">
-                <div>
-                  <p className="font-medium">{m.profiles?.full_name ?? "Sans nom"}</p>
-                  <p className="text-xs text-muted-foreground">{m.profiles?.phone ?? "—"}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary">{ROLE_LABELS[m.role] ?? m.role}</Badge>
-                  {isAdmin && m.user_id !== membership.userId ? (
-                    <form action={removeMembership}>
-                      <input type="hidden" name="membershipId" value={m.id} />
-                      <Button type="submit" variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                        Retirer
-                      </Button>
-                    </form>
-                  ) : null}
-                </div>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
-
-      {isAdmin ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Ajouter un utilisateur</CardTitle>
-            <CardDescription>
-              Créez son compte, puis partagez-lui l&apos;e-mail et le mot de passe
-              choisis ici — aucun e-mail n&apos;est envoyé automatiquement.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form action={inviteUser} className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Nom complet</Label>
-                <Input id="fullName" name="fullName" required />
-              </div>
-              <div className="space-y-2">
-                <Label>Rôle</Label>
-                <Select name="role" required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choisir" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="teacher">Enseignant</SelectItem>
-                    <SelectItem value="cashier">Caissier</SelectItem>
-                    <SelectItem value="parent">Parent</SelectItem>
-                    <SelectItem value="school_admin">Direction</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">E-mail</Label>
-                <Input id="email" name="email" type="email" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phoneLocal">Téléphone</Label>
-                <div className="relative flex items-center">
-                  <span className="pointer-events-none absolute left-3 text-sm text-muted-foreground">+221</span>
-                  <Input id="phoneLocal" name="phoneLocal" type="tel" inputMode="numeric" placeholder="77 123 45 67" className="pl-12" />
-                </div>
-              </div>
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="password">Mot de passe temporaire</Label>
-                <Input id="password" name="password" type="text" minLength={6} required />
-              </div>
-              {params.error ? <p className="text-sm text-destructive sm:col-span-2">{params.error}</p> : null}
-              <div className="sm:col-span-2">
-                <Button type="submit">Créer le compte</Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      ) : null}
     </div>
   );
 }

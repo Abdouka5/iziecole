@@ -30,12 +30,15 @@ export function StatCard({
   const TrendIcon = trendDirection === "up" ? TrendingUp : TrendingDown;
 
   const body = (
-    <Card className={cn(href && "transition-shadow hover:shadow-md")}>
+    <Card
+      className="border-l-4"
+      style={{ borderLeftColor: fg, backgroundColor: bg }}
+    >
       <CardContent className="flex items-start justify-between gap-3 p-4">
         <div className="flex items-center gap-3">
           <div
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-            style={{ backgroundColor: bg, color: fg }}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-card"
+            style={{ color: fg }}
           >
             <Icon className="h-5 w-5" />
           </div>

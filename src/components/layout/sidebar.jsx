@@ -10,6 +10,7 @@ import {
   FileText,
   Wallet,
   CalendarClock,
+  Briefcase,
   Settings,
   Receipt,
   Building2,
@@ -37,6 +38,7 @@ const NAV_BY_ROLE = {
     { href: "/grades", label: "Notes & bulletins", icon: FileText },
     { href: "/finance", label: "Finances", icon: Wallet },
     { href: "/schedule", label: "Emploi du temps", icon: CalendarClock },
+    { href: "/personnel", label: "Personnel", icon: Briefcase },
     { href: "/settings", label: "Paramètres", icon: Settings },
   ],
   teacher: [

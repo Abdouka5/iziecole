@@ -3,7 +3,6 @@ import {
   CreditCard,
   Building2,
   CalendarRange,
-  Users,
   BookOpen,
   Layers,
 } from "lucide-react";
@@ -13,7 +12,6 @@ const SECTIONS = [
   { id: "subscription", label: "Abonnement", description: "Formule et paiement", icon: CreditCard },
   { id: "general", label: "Informations générales", description: "Données de l'établissement", icon: Building2 },
   { id: "year", label: "Année scolaire", description: "Périodes et trimestres", icon: CalendarRange },
-  { id: "users", label: "Utilisateurs", description: "Comptes et rôles", icon: Users },
   { id: "subjects", label: "Matières", description: "Gestion des matières", icon: BookOpen },
   { id: "levels", label: "Niveaux scolaires", description: "Cycles et niveaux", icon: Layers },
 ];

@@ -11,10 +11,10 @@ import { getCurrentMembership } from "@/lib/school-context";
 // configured on the project, which we can't assume. The admin sets a
 // temporary password here and shares it with the new user out-of-band
 // (WhatsApp, in person), matching how this school already communicates.
-export async function inviteUser(formData) {
+export async function inviteStaff(formData) {
   const membership = await getCurrentMembership();
   if (membership.role !== "school_admin") {
-    redirect("/settings?section=users");
+    redirect("/personnel");
   }
 
   const email = formData.get("email")?.toString().trim();
@@ -24,10 +24,10 @@ export async function inviteUser(formData) {
   const password = formData.get("password")?.toString();
 
   if (!email || !fullName || !role || !password) {
-    redirect(`/settings?section=users&error=${encodeURIComponent("Merci de remplir tous les champs.")}`);
+    redirect(`/personnel?new=1&error=${encodeURIComponent("Merci de remplir tous les champs.")}`);
   }
   if (password.length < 6) {
-    redirect(`/settings?section=users&error=${encodeURIComponent("Le mot de passe doit faire au moins 6 caractères.")}`);
+    redirect(`/personnel?new=1&error=${encodeURIComponent("Le mot de passe doit faire au moins 6 caractères.")}`);
   }
 
   const admin = createAdminClient();
@@ -39,7 +39,7 @@ export async function inviteUser(formData) {
   });
 
   if (authError) {
-    redirect(`/settings?section=users&error=${encodeURIComponent(authError.message)}`);
+    redirect(`/personnel?new=1&error=${encodeURIComponent(authError.message)}`);
   }
 
   const userId = authData.user.id;
@@ -55,16 +55,15 @@ export async function inviteUser(formData) {
   });
 
   if (membershipError) {
-    redirect(`/settings?section=users&error=${encodeURIComponent(membershipError.message)}`);
+    redirect(`/personnel?new=1&error=${encodeURIComponent(membershipError.message)}`);
   }
 
-  revalidatePath("/settings");
-  redirect(
-    `/settings?section=users&created=${encodeURIComponent(email)}`,
-  );
+  revalidatePath("/personnel");
+  revalidatePath("/dashboard");
+  redirect(`/personnel?created=${encodeURIComponent(email)}`);
 }
 
-export async function removeMembership(formData) {
+export async function removeStaffMember(formData) {
   const membership = await getCurrentMembership();
   if (membership.role !== "school_admin") return;
 
@@ -73,5 +72,6 @@ export async function removeMembership(formData) {
   if (!membershipId) return;
 
   await supabase.from("memberships").delete().eq("id", membershipId);
-  revalidatePath("/settings");
+  revalidatePath("/personnel");
+  revalidatePath("/dashboard");
 }

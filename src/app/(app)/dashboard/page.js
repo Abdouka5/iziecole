@@ -1,13 +1,8 @@
-import Link from "next/link";
 import {
   User,
   GraduationCap,
-  Wallet,
+  Briefcase,
   CalendarClock,
-  UserPlus,
-  FilePlus2,
-  FileText,
-  Send,
   Megaphone,
   Receipt,
 } from "lucide-react";
@@ -33,19 +28,13 @@ const CYCLE_LABELS = {
   lycee: "Lycée",
 };
 const CYCLE_ORDER = ["maternelle", "primaire", "college", "lycee"];
-const CYCLE_ACCENTS = ["blue", "green", "purple", "amber"];
+
+const STAFF_ROLES = ["school_admin", "teacher", "cashier"];
 
 function lastNMonthStarts(n) {
   const now = new Date();
   return Array.from({ length: n }, (_, i) => new Date(now.getFullYear(), now.getMonth() - (n - 1 - i), 1));
 }
-
-const QUICK_ACTIONS = [
-  { href: "/students", label: "Ajouter un élève", icon: UserPlus, accent: "solid" },
-  { href: "/classes", label: "Créer une classe", icon: GraduationCap, accent: "purple" },
-  { href: "/grades", label: "Générer un bulletin", icon: FilePlus2, accent: "green" },
-  { href: "/communication", label: "Envoyer un message", icon: Send, accent: "amber" },
-];
 
 export default async function DashboardPage() {
   const membership = await getCurrentMembership();
@@ -58,8 +47,7 @@ export default async function DashboardPage() {
     { count: studentsCount },
     { count: newStudentsThisMonth },
     { count: classesCount },
-    { count: pendingInvoices },
-    { count: overdueInvoices },
+    { count: staffCount },
     { data: currentYear },
     { data: allStudents },
     { data: enrollmentLevels },
@@ -70,8 +58,7 @@ export default async function DashboardPage() {
     supabase.from("students").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("status", "active"),
     supabase.from("students").select("id", { count: "exact", head: true }).eq("school_id", schoolId).gte("created_at", startOfMonth),
     supabase.from("classes").select("id", { count: "exact", head: true }).eq("school_id", schoolId),
-    supabase.from("invoices").select("id", { count: "exact", head: true }).eq("school_id", schoolId).in("status", ["pending", "partial", "overdue"]),
-    supabase.from("invoices").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("status", "overdue"),
+    supabase.from("memberships").select("id", { count: "exact", head: true }).eq("school_id", schoolId).in("role", STAFF_ROLES),
     supabase.from("school_years").select("label").eq("school_id", schoolId).eq("is_current", true).maybeSingle(),
     supabase.from("students").select("created_at").eq("school_id", schoolId),
     supabase.from("enrollments").select("student_id, classes(levels(cycle))").eq("school_id", schoolId).eq("status", "active"),
@@ -141,7 +128,7 @@ export default async function DashboardPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
           icon={User}
           label="Élèves actifs"
@@ -159,21 +146,11 @@ export default async function DashboardPage() {
           href="/classes"
         />
         <StatCard
-          icon={Wallet}
-          label="Factures en attente"
-          value={pendingInvoices ?? 0}
+          icon={Briefcase}
+          label="Personnels"
+          value={staffCount ?? 0}
           accent="amber"
-          href="/finance"
-          trend={overdueInvoices ? `${overdueInvoices}` : null}
-          trendLabel="en retard"
-          trendDirection={overdueInvoices ? "down" : "up"}
-        />
-        <StatCard
-          icon={CalendarClock}
-          label="Année scolaire"
-          value={currentYear?.label ?? "Non définie"}
-          accent="green"
-          badge={currentYear ? "En cours" : "À configurer"}
+          href="/personnel"
         />
       </div>
 
@@ -228,8 +205,8 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Dernières activités</CardTitle>
           </CardHeader>
@@ -262,7 +239,7 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-1">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Événements à venir</CardTitle>
           </CardHeader>
@@ -270,33 +247,6 @@ export default async function DashboardPage() {
             <p className="py-6 text-center text-sm text-muted-foreground">
               Aucun événement à venir pour l&apos;instant.
             </p>
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="text-base">Actions rapides</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-3">
-            {QUICK_ACTIONS.map(({ href, label, icon: Icon, accent }) => {
-              const isSolid = accent === "solid";
-              const colors = isSolid ? null : ACCENTS[accent];
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className="flex flex-col items-start gap-2 rounded-xl p-3 text-sm font-medium transition-opacity hover:opacity-90"
-                  style={
-                    isSolid
-                      ? { backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }
-                      : { backgroundColor: colors.bg, color: colors.fg }
-                  }
-                >
-                  <Icon className="h-5 w-5" />
-                  {label}
-                </Link>
-              );
-            })}
           </CardContent>
         </Card>
       </div>
