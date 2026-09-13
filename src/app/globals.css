@@ -176,4 +176,16 @@ html {
   @page {
     margin: 8mm;
   }
+
+  /* Chrome/Safari drop background colors and images when printing unless
+     told otherwise, and only offer to keep them behind an opt-in
+     "background graphics" checkbox — force it so accent bars, colored
+     badges (matricule, guardian cards) and the navy banner on the student
+     sheet render the same as the on-screen preview without asking the
+     user to toggle a print setting. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
 }
