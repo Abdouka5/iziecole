@@ -29,8 +29,8 @@ const COLLAPSE_STORAGE_KEY = "iziecole_sidebar_collapsed";
 // docs/cahier-des-charges.md §5 and the RLS policies each page relies on.
 const NAV_BY_ROLE = {
   super_admin: [
-    { href: "/admin", label: "Écoles", icon: Building2 },
-    { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
+    { href: "/admin", label: "Console Super Admin", icon: Building2 },
+    { href: "/dashboard", label: "Tableau de bord (école)", icon: LayoutDashboard },
   ],
   school_admin: [
     { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },

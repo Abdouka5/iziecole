@@ -5,11 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
-import { formatFcfa, SUBSCRIPTION_PRICE } from "@/lib/subscription-plans";
+import { formatFcfa } from "@/lib/subscription-plans";
+import { getPlatformSettings } from "@/lib/platform-settings";
+import { createClient } from "@/lib/supabase/server";
 import { signUpSchool } from "./actions";
 
 export default async function SignupPage({ searchParams }) {
   const { error } = await searchParams;
+  const supabase = await createClient();
+  const { subscriptionPrice, subscriptionDurationDays } = await getPlatformSettings(supabase);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-secondary/40 p-6 py-12">
@@ -29,7 +33,7 @@ export default async function SignupPage({ searchParams }) {
             Simplifiez la gestion de votre établissement avec iziecole.
           </p>
           <p className="text-xs font-medium text-primary">
-            {formatFcfa(SUBSCRIPTION_PRICE)} — toutes les fonctionnalités, 30 jours
+            {formatFcfa(subscriptionPrice)} — toutes les fonctionnalités, {subscriptionDurationDays} jours
           </p>
         </div>
 

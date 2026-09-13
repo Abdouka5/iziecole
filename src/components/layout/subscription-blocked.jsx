@@ -2,9 +2,9 @@ import Link from "next/link";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatFcfa, SUBSCRIPTION_PRICE } from "@/lib/subscription-plans";
+import { formatFcfa } from "@/lib/subscription-plans";
 
-export function SubscriptionBlocked({ canRenew }) {
+export function SubscriptionBlocked({ canRenew, subscriptionPrice, subscriptionDurationDays }) {
   return (
     <div className="flex h-full items-center justify-center py-16">
       <Card className="max-w-md">
@@ -15,7 +15,7 @@ export function SubscriptionBlocked({ canRenew }) {
           <h2 className="text-lg font-bold text-foreground">Abonnement expiré</h2>
           <p className="text-sm text-muted-foreground">
             {canRenew
-              ? `L'accès à cette page est suspendu. Renouvelez l'abonnement (${formatFcfa(SUBSCRIPTION_PRICE)} / 30 jours) pour continuer à utiliser iziecole.`
+              ? `L'accès à cette page est suspendu. Renouvelez l'abonnement (${formatFcfa(subscriptionPrice)} / ${subscriptionDurationDays} jours) pour continuer à utiliser iziecole.`
               : "L'abonnement de votre établissement est arrivé à échéance. Contactez la direction pour le renouveler."}
           </p>
           {canRenew ? (

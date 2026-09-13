@@ -95,6 +95,9 @@ export function Header({ school, role, fullName, notificationCount = 0 }) {
             <DropdownMenuItem onSelect={() => router.push("/select-school")}>
               Changer d&apos;établissement
             </DropdownMenuItem>
+            {role === "school_admin" ? (
+              <DropdownMenuItem onSelect={() => router.push("/support")}>Contacter le support</DropdownMenuItem>
+            ) : null}
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={handleSignOut}>
               <LogOut className="mr-2 h-4 w-4" />

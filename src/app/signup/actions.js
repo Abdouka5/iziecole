@@ -4,28 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureDefaultSubjects, ensureDefaultLevels } from "@/lib/school-defaults";
-
-function slugify(name) {
-  return name
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-async function uniqueSlug(admin, baseSlug) {
-  let slug = baseSlug || "ecole";
-  let suffix = 1;
-  // Bootstrap-only lookup: RLS normally hides other schools from a
-  // brand-new user, so this needs the service-role client.
-  while (true) {
-    const { data } = await admin.from("schools").select("id").eq("slug", slug).maybeSingle();
-    if (!data) return slug;
-    suffix += 1;
-    slug = `${baseSlug}-${suffix}`;
-  }
-}
+import { slugify, uniqueSlug } from "@/lib/school-slug";
 
 export async function signUpSchool(formData) {
   const schoolName = formData.get("schoolName")?.toString().trim();

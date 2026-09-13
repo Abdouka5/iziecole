@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMembership } from "@/lib/school-context";
 import Link from "next/link";
-import { formatFcfa, SUBSCRIPTION_PRICE } from "@/lib/subscription-plans";
+import { formatFcfa } from "@/lib/subscription-plans";
+import { getPlatformSettings } from "@/lib/platform-settings";
 import { getSubscriptionStatus } from "@/lib/subscription-status";
 import { Download } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
@@ -89,7 +90,7 @@ export default async function SettingsPage({ searchParams }) {
 }
 
 async function SubscriptionSection({ supabase, membership }) {
-  const [{ data: payments }, status] = await Promise.all([
+  const [{ data: payments }, status, { subscriptionPrice, subscriptionDurationDays }] = await Promise.all([
     supabase
       .from("subscription_payments")
       .select("id, period_label, amount, status, created_at")
@@ -97,6 +98,7 @@ async function SubscriptionSection({ supabase, membership }) {
       .order("created_at", { ascending: false })
       .limit(6),
     getSubscriptionStatus(supabase, membership.school.id),
+    getPlatformSettings(supabase),
   ]);
 
   return (
@@ -104,7 +106,9 @@ async function SubscriptionSection({ supabase, membership }) {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Abonnement iziecole</CardTitle>
-          <CardDescription>{formatFcfa(SUBSCRIPTION_PRICE)} — toutes les fonctionnalités, 30 jours</CardDescription>
+          <CardDescription>
+            {formatFcfa(subscriptionPrice)} — toutes les fonctionnalités, {subscriptionDurationDays} jours
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between rounded-lg border p-3">

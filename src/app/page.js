@@ -10,7 +10,9 @@ import {
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatFcfa, SUBSCRIPTION_PRICE, SUBSCRIPTION_DURATION_DAYS } from "@/lib/subscription-plans";
+import { formatFcfa } from "@/lib/subscription-plans";
+import { getPlatformSettings } from "@/lib/platform-settings";
+import { createClient } from "@/lib/supabase/server";
 
 const MODULES = [
   {
@@ -46,7 +48,10 @@ const ACCENT_STYLES = {
   amber: { bg: "#fdf1e0", fg: "#f79009" },
 };
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const supabase = await createClient();
+  const { subscriptionPrice, subscriptionDurationDays } = await getPlatformSettings(supabase);
+
   return (
     <div className="bg-background">
       <header className="border-b bg-card">
@@ -124,10 +129,10 @@ export default function LandingPage() {
             <Card className="mt-8">
               <CardContent className="flex flex-col items-center p-8">
                 <p className="text-4xl font-bold text-foreground">
-                  {formatFcfa(SUBSCRIPTION_PRICE)}
+                  {formatFcfa(subscriptionPrice)}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  pour {SUBSCRIPTION_DURATION_DAYS} jours, renouvelable
+                  pour {subscriptionDurationDays} jours, renouvelable
                 </p>
                 <ul className="mt-6 space-y-2 text-left text-sm text-muted-foreground">
                   <li className="flex items-center gap-2">

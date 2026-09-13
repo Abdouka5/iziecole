@@ -9,7 +9,7 @@ function DotlessI() {
   );
 }
 
-export function Logo({ className = "" }) {
+export function Logo({ className = "", dark = false }) {
   return (
     <span
       className={`inline-flex items-baseline font-heading font-bold tracking-tight ${className}`}
@@ -17,7 +17,7 @@ export function Logo({ className = "" }) {
       <span className="text-brand-blue">
         <DotlessI />z<DotlessI />
       </span>
-      <span className="text-brand-ink">ecole</span>
+      <span className={dark ? "text-white" : "text-brand-ink"}>ecole</span>
     </span>
   );
 }
