@@ -4,8 +4,6 @@ import {
   Receipt,
   Scale,
   Plus,
-  FileOutput,
-  Download,
   Printer,
   PartyPopper,
   Trash2,
@@ -40,6 +38,7 @@ import {
 import { GroupedBarChart } from "@/components/charts/grouped-bar-chart";
 import { DonutChart } from "@/components/charts/donut-chart";
 import { StudentCombobox } from "./student-combobox";
+import { ExportReportButton } from "./export-report-button";
 import { recordPayment, createExpense, deleteExpense } from "./actions";
 
 const MONTH_LABELS = [
@@ -77,7 +76,7 @@ export default async function FinancePage({ searchParams }) {
       .eq("school_id", schoolId),
     supabase
       .from("payments")
-      .select("id, amount, method, paid_at, students(first_name, last_name)")
+      .select("id, amount, method, paid_at, students(first_name, last_name, matricule)")
       .eq("school_id", schoolId)
       .order("paid_at", { ascending: false }),
     supabase
@@ -153,6 +152,14 @@ export default async function FinancePage({ searchParams }) {
     classTotals.set(className, entry);
   }
 
+  const paymentRows = (payments ?? []).map((p) => ({
+    studentName: `${p.students?.first_name ?? ""} ${p.students?.last_name ?? ""}`.trim(),
+    matricule: p.students?.matricule ?? "",
+    methodLabel: METHOD_LABELS[p.method] ?? p.method,
+    dateLabel: new Date(p.paid_at).toLocaleDateString("fr-FR"),
+    amount: Number(p.amount),
+  }));
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -172,14 +179,7 @@ export default async function FinancePage({ searchParams }) {
                 Ajouter une dépense
               </Link>
             </Button>
-            <Button variant="outline" disabled title="Bientôt disponible">
-              <FileOutput className="mr-1.5 h-4 w-4" />
-              Générer une facture
-            </Button>
-            <Button variant="outline" disabled title="Bientôt disponible">
-              <Download className="mr-1.5 h-4 w-4" />
-              Exporter le rapport
-            </Button>
+            <ExportReportButton payments={paymentRows} />
           </>
         }
       />
@@ -314,42 +314,6 @@ export default async function FinancePage({ searchParams }) {
           {params.error ? <p className="text-sm text-destructive">{params.error}</p> : null}
         </form>
       </FormModal>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">Évolution des paiements</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <GroupedBarChart data={evolutionData} config={evolutionConfig} series={["encaisse", "attendu"]} />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Répartition par mode de paiement</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center gap-4">
-            {methodData.length > 0 ? (
-              <>
-                <DonutChart data={methodData} config={methodConfig} centerValue={fcfa(totalPaid)} />
-                <ul className="w-full space-y-1.5 text-sm">
-                  {methodData.map((m) => (
-                    <li key={m.name} className="flex items-center justify-between">
-                      <span className="flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: m.fill }} />
-                        {m.name}
-                      </span>
-                      <span className="font-medium">{fcfa(m.value)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            ) : (
-              <p className="py-8 text-center text-sm text-muted-foreground">Aucun paiement enregistré.</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
 
       <Tabs defaultValue="recent">
         <TabsList>
@@ -510,11 +474,48 @@ export default async function FinancePage({ searchParams }) {
         <TabsContent value="reports">
           <Card>
             <CardContent className="py-10 text-center text-sm text-muted-foreground">
-              Les rapports détaillés (export PDF/Excel) arrivent bientôt.
+              Utilisez le bouton « Exporter le rapport » en haut de la page pour
+              télécharger l&apos;historique des paiements en PDF ou en Excel.
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">Évolution des paiements</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <GroupedBarChart data={evolutionData} config={evolutionConfig} series={["encaisse", "attendu"]} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Répartition par mode de paiement</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center gap-4">
+            {methodData.length > 0 ? (
+              <>
+                <DonutChart data={methodData} config={methodConfig} centerValue={fcfa(totalPaid)} />
+                <ul className="w-full space-y-1.5 text-sm">
+                  {methodData.map((m) => (
+                    <li key={m.name} className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: m.fill }} />
+                        {m.name}
+                      </span>
+                      <span className="font-medium">{fcfa(m.value)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <p className="py-8 text-center text-sm text-muted-foreground">Aucun paiement enregistré.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
