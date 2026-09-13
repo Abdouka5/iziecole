@@ -10,8 +10,6 @@ import {
   FileText,
   Wallet,
   CalendarClock,
-  MessageSquare,
-  Folder,
   Settings,
   Receipt,
   Building2,
@@ -38,21 +36,17 @@ const NAV_BY_ROLE = {
     { href: "/grades", label: "Notes & bulletins", icon: FileText },
     { href: "/finance", label: "Finances", icon: Wallet },
     { href: "/schedule", label: "Emploi du temps", icon: CalendarClock },
-    { href: "/communication", label: "Communication", icon: MessageSquare },
-    { href: "/documents", label: "Documents", icon: Folder },
     { href: "/settings", label: "Paramètres", icon: Settings },
   ],
   teacher: [
     { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
     { href: "/grades", label: "Notes", icon: FileText },
     { href: "/schedule", label: "Emploi du temps", icon: CalendarClock },
-    { href: "/communication", label: "Communication", icon: MessageSquare },
   ],
   cashier: [{ href: "/caisse", label: "Caisse", icon: Receipt }],
   parent: [
     { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
     { href: "/finance", label: "Paiements", icon: Wallet },
-    { href: "/communication", label: "Annonces", icon: MessageSquare },
   ],
   student: [
     { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
@@ -61,7 +55,7 @@ const NAV_BY_ROLE = {
   ],
 };
 
-export function Sidebar({ role, unreadCount = 0 }) {
+export function Sidebar({ role }) {
   const pathname = usePathname();
   const items = NAV_BY_ROLE[role] ?? NAV_BY_ROLE.school_admin;
   const [collapsed, setCollapsed] = useState(false);
@@ -108,31 +102,21 @@ export function Sidebar({ role, unreadCount = 0 }) {
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
         {items.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
-          const showBadge = href === "/communication" && unreadCount > 0;
           return (
             <Link
               key={href}
               href={href}
               title={collapsed ? label : undefined}
               className={cn(
-                "flex items-center gap-3 rounded-[11px] px-3 py-2 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-[11px] px-3 py-2.5 text-base font-medium transition-colors",
                 collapsed && "justify-center px-0",
                 active
                   ? "bg-primary text-primary-foreground"
                   : "text-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
               )}
             >
-              <Icon className="h-4 w-4 shrink-0" />
-              {!collapsed ? (
-                <>
-                  <span className="flex-1">{label}</span>
-                  {showBadge ? (
-                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-xs font-semibold text-white">
-                      {unreadCount}
-                    </span>
-                  ) : null}
-                </>
-              ) : null}
+              <Icon className="h-5 w-5 shrink-0" />
+              {!collapsed ? <span className="flex-1">{label}</span> : null}
             </Link>
           );
         })}

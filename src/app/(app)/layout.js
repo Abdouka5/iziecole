@@ -20,16 +20,16 @@ export default async function AppLayout({ children }) {
     .is("read_at", null);
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar role={membership.role} unreadCount={unreadCount ?? 0} />
-      <div className="flex flex-1 flex-col">
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar role={membership.role} />
+      <div className="flex flex-1 flex-col overflow-hidden">
         <Header
           school={membership.school}
           role={membership.role}
           fullName={membership.fullName}
           notificationCount={unreadCount ?? 0}
         />
-        <main className="flex-1 bg-secondary/30 p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto bg-secondary/30 p-6">{children}</main>
       </div>
     </div>
   );
