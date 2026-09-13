@@ -1,100 +1,173 @@
-import Image from "next/image";
+import Link from "next/link";
+import {
+  User,
+  FileText,
+  Receipt,
+  CalendarClock,
+  Check,
+  ArrowRight,
+} from "lucide-react";
+import { Logo } from "@/components/brand/logo";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { PLAN_LABELS, PLAN_PRICES, formatFcfa } from "@/lib/subscription-plans";
 
-export default function Home() {
+const MODULES = [
+  {
+    icon: User,
+    accent: "blue",
+    title: "Élèves",
+    description: "Inscriptions, dossiers élèves, classes et niveaux, historique scolaire.",
+  },
+  {
+    icon: FileText,
+    accent: "purple",
+    title: "Notes & bulletins",
+    description: "Saisie des notes par les enseignants, calcul automatique des moyennes, bulletins, classement.",
+  },
+  {
+    icon: Receipt,
+    accent: "green",
+    title: "Paiements",
+    description: "Encaissement des frais de scolarité sur place, avec reçu imprimé immédiat.",
+  },
+  {
+    icon: CalendarClock,
+    accent: "amber",
+    title: "Emploi du temps",
+    description: "Planning par classe et par enseignant, gestion des salles.",
+  },
+];
+
+const ACCENT_STYLES = {
+  blue: { bg: "#e8f1fa", fg: "#146ef5" },
+  purple: { bg: "#f1ebfc", fg: "#7f56d9" },
+  green: { bg: "#e7f6ec", fg: "#12b76a" },
+  amber: { bg: "#fdf1e0", fg: "#f79009" },
+};
+
+const PLAN_ORDER = ["prescolaire", "elementaire", "college_lycee", "ecole_complete"];
+const PLAN_DESCRIPTIONS = {
+  prescolaire: "Niveau maternelle, élèves illimités",
+  elementaire: "Niveau primaire, élèves illimités",
+  college_lycee: "Secondaire, élèves illimités",
+  ecole_complete: "Tous niveaux réunis",
+};
+
+export default function LandingPage() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="bg-background">
+      <header className="border-b bg-card">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+          <Logo className="text-xl" />
+          <nav className="flex items-center gap-2">
+            <Button variant="ghost" asChild>
+              <Link href="/login">Se connecter</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/signup">Créer un compte</Link>
+            </Button>
+          </nav>
         </div>
+      </header>
+
+      <main>
+        <section className="mx-auto max-w-4xl px-6 py-20 text-center sm:py-28">
+          <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+            La gestion scolaire, simplifiée
+          </h1>
+          <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
+            iziecole est un logiciel tout-en-un pour gérer votre école privée, de la
+            Maternelle au Lycée — élèves, notes, paiements et emploi du temps réunis
+            dans un seul outil.
+          </p>
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Button size="lg" asChild>
+              <Link href="/signup">
+                Créer votre compte école
+                <ArrowRight className="ml-1.5 h-4 w-4" />
+              </Link>
+            </Button>
+            <Button size="lg" variant="outline" asChild>
+              <Link href="/login">Se connecter</Link>
+            </Button>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-6 pb-20">
+          <div className="mx-auto mb-10 max-w-2xl text-center">
+            <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
+              Un seul outil pour toute la gestion de votre établissement
+            </h2>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {MODULES.map(({ icon: Icon, accent, title, description }) => {
+              const { bg, fg } = ACCENT_STYLES[accent];
+              return (
+                <Card key={title}>
+                  <CardContent className="p-6">
+                    <div
+                      className="flex h-11 w-11 items-center justify-center rounded-xl"
+                      style={{ backgroundColor: bg, color: fg }}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <h3 className="mt-4 text-base font-semibold text-foreground">{title}</h3>
+                    <p className="mt-1.5 text-sm text-muted-foreground">{description}</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="border-t bg-secondary/40 py-20">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="mx-auto mb-10 max-w-2xl text-center">
+              <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
+                Une formule pour chaque établissement
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Tous les modules sont inclus dans chaque formule — le prix dépend
+                seulement du niveau scolaire couvert.
+              </p>
+            </div>
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {PLAN_ORDER.map((plan) => (
+                <Card key={plan} className="flex flex-col">
+                  <CardContent className="flex flex-1 flex-col p-6">
+                    <h3 className="text-base font-semibold text-foreground">{PLAN_LABELS[plan]}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">{PLAN_DESCRIPTIONS[plan]}</p>
+                    <p className="mt-4 text-3xl font-bold text-foreground">
+                      {formatFcfa(PLAN_PRICES[plan])}
+                      <span className="text-sm font-normal text-muted-foreground">/mois</span>
+                    </p>
+                    <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 shrink-0 text-status-good" />
+                        Élèves illimités
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 shrink-0 text-status-good" />
+                        Tous les modules inclus
+                      </li>
+                    </ul>
+                    <Button className="mt-6" variant="outline" asChild>
+                      <Link href="/signup">Choisir cette formule</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+      <footer className="border-t bg-card py-8">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 text-sm text-muted-foreground sm:flex-row">
+          <Logo className="text-base" />
+          <p>© {new Date().getFullYear()} iziecole — Tous droits réservés</p>
+        </div>
       </footer>
     </div>
   );
