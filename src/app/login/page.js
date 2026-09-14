@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
+import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { signIn } from "./actions";
 
 export default async function LoginPage({ searchParams }) {
@@ -52,6 +53,14 @@ export default async function LoginPage({ searchParams }) {
           <Button type="submit" className="w-full">
             Se connecter
           </Button>
+
+          <div className="flex items-center gap-3 py-1">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground">ou</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          <GoogleAuthButton label="Se connecter avec Google" />
 
           <p className="pt-2 text-center text-sm text-muted-foreground">
             Vous n&apos;avez pas encore de compte ?{" "}

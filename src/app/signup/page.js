@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
+import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { formatFcfa } from "@/lib/subscription-plans";
 import { getPlatformSettings } from "@/lib/platform-settings";
 import { createClient } from "@/lib/supabase/server";
@@ -98,6 +99,14 @@ export default async function SignupPage({ searchParams }) {
           <Button type="submit" className="w-full">
             Créer mon compte
           </Button>
+
+          <div className="flex items-center gap-3 py-1">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground">ou</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          <GoogleAuthButton label="S'inscrire avec Google" />
 
           <p className="pt-2 text-center text-sm text-muted-foreground">
             Vous avez déjà un compte ?{" "}
