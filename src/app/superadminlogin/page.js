@@ -13,7 +13,7 @@ export default async function SuperAdminLoginPage({ searchParams }) {
       <div className="w-full max-w-sm space-y-8">
         <div className="flex flex-col items-center gap-2 text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/wordmark-white.png" alt="iziecole" className="h-10 w-auto" />
+          <img src="/brand/wordmark-white.png" alt="iziecole" className="h-20 w-auto" />
           <p className="flex items-center gap-1.5 text-sm text-white/50">
             <ShieldCheck className="h-4 w-4" />
             Console Super Admin

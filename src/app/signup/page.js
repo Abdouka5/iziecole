@@ -19,7 +19,7 @@ export default async function SignupPage({ searchParams }) {
       <div className="w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center gap-2 text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/logologinpage.png" alt="iziecole" className="h-10 w-auto" />
+          <img src="/brand/logologinpage.png" alt="iziecole" className="h-20 w-auto" />
           <p className="text-sm text-muted-foreground">
             La gestion scolaire, simplifiée
           </p>
