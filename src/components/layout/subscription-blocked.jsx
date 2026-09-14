@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { Lock } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatFcfa } from "@/lib/subscription-plans";
+import { paySubscription } from "@/app/(app)/settings/actions";
 
 export function SubscriptionBlocked({ canRenew, neverPaid, subscriptionPrice, subscriptionDurationDays }) {
   const heading = neverPaid ? "Abonnement non activé" : "Abonnement expiré";
@@ -24,9 +24,11 @@ export function SubscriptionBlocked({ canRenew, neverPaid, subscriptionPrice, su
           <h2 className="text-lg font-bold text-foreground">{heading}</h2>
           <p className="text-sm text-muted-foreground">{message}</p>
           {canRenew ? (
-            <Button asChild className="mt-2">
-              <Link href="/settings?section=subscription">{neverPaid ? "Activer maintenant" : "Renouveler maintenant"}</Link>
-            </Button>
+            <form action={paySubscription} className="mt-2">
+              <SubmitButton pendingText="Redirection vers le paiement...">
+                {neverPaid ? "Activer maintenant" : "Renouveler maintenant"}
+              </SubmitButton>
+            </form>
           ) : null}
         </CardContent>
       </Card>

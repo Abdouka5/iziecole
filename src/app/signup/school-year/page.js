@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { CalendarRange } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMembership } from "@/lib/school-context";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createFirstSchoolYear } from "./actions";
@@ -45,9 +45,9 @@ export default async function SchoolYearSetupPage({ searchParams }) {
 
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-          <Button type="submit" className="w-full">
+          <SubmitButton className="w-full" pendingText="Enregistrement...">
             Continuer
-          </Button>
+          </SubmitButton>
         </form>
 
         <p className="text-center">

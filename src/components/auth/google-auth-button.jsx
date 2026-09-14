@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
@@ -18,17 +20,23 @@ function GoogleIcon(props) {
 // existing membership is routed by /auth/callback into /signup/complete
 // to collect the school name, so one button covers both intents.
 export function GoogleAuthButton({ label = "Continuer avec Google" }) {
+  const [loading, setLoading] = useState(false);
+
   async function handleClick() {
+    setLoading(true);
     const supabase = createClient();
-    await supabase.auth.signInWithOAuth({
+    // A successful call navigates the whole page away to Google, so
+    // `loading` only ever needs resetting on the error path.
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
+    if (error) setLoading(false);
   }
 
   return (
-    <Button type="button" variant="outline" className="w-full" onClick={handleClick}>
-      <GoogleIcon className="mr-2 h-4 w-4" />
+    <Button type="button" variant="outline" className="w-full" onClick={handleClick} disabled={loading}>
+      {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-4 w-4" />}
       {label}
     </Button>
   );

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { Building2, Phone } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { completeGoogleSignup } from "./actions";
@@ -53,9 +53,9 @@ export default async function CompleteSignupPage({ searchParams }) {
 
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-          <Button type="submit" className="w-full">
+          <SubmitButton className="w-full" pendingText="Finalisation...">
             Terminer l&apos;inscription
-          </Button>
+          </SubmitButton>
         </form>
       </div>
     </div>

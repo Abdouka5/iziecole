@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Building2, Mail, Phone } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -96,9 +96,9 @@ export default async function SignupPage({ searchParams }) {
 
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-          <Button type="submit" className="w-full">
+          <SubmitButton className="w-full" pendingText="Création du compte...">
             Créer mon compte
-          </Button>
+          </SubmitButton>
 
           <div className="flex items-center gap-3 py-1">
             <div className="h-px flex-1 bg-border" />
