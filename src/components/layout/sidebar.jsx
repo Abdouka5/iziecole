@@ -96,16 +96,16 @@ export function Sidebar({ role }) {
   return (
     <aside
       className={cn(
-        "hidden shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200 md:flex",
+        "hidden shrink-0 flex-col border-r border-white/10 bg-[#0b1220] transition-[width] duration-200 md:flex",
         collapsed ? "w-[76px]" : "w-64",
       )}
     >
-      <div className={cn("flex h-16 items-center border-b border-sidebar-border", collapsed ? "justify-center px-2" : "justify-between px-5")}>
-        {!collapsed ? <Logo className="text-xl" /> : null}
+      <div className={cn("flex h-16 items-center border-b border-white/10", collapsed ? "justify-center px-2" : "justify-between px-5")}>
+        {!collapsed ? <Logo className="text-xl" dark /> : null}
         <button
           type="button"
           onClick={toggleCollapsed}
-          className="text-muted-foreground hover:text-foreground"
+          className="text-white/60 hover:text-white"
           aria-label={collapsed ? "Agrandir le menu" : "Réduire le menu"}
         >
           {collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
@@ -123,9 +123,7 @@ export function Sidebar({ role }) {
               className={cn(
                 "flex items-center gap-3 rounded-[11px] px-3 py-2.5 text-base font-medium transition-colors",
                 collapsed && "justify-center px-0",
-                active
-                  ? "bg-primary text-primary-foreground"
-                  : "text-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                active ? "bg-[#146ef5] text-white" : "text-white/70 hover:bg-white/5 hover:text-white",
               )}
             >
               <Icon className="h-5 w-5 shrink-0" />
@@ -135,13 +133,13 @@ export function Sidebar({ role }) {
         })}
       </nav>
 
-      <div className={cn("space-y-3 border-t border-sidebar-border p-4", collapsed && "flex flex-col items-center px-2")}>
+      <div className={cn("space-y-3 border-t border-white/10 p-4", collapsed && "flex flex-col items-center px-2")}>
         <button
           type="button"
           onClick={handleSignOut}
           title={collapsed ? "Déconnexion" : undefined}
           className={cn(
-            "flex items-center gap-3 rounded-[11px] px-3 py-2.5 text-base font-medium text-destructive transition-colors hover:bg-destructive/10",
+            "flex items-center gap-3 rounded-[11px] px-3 py-2.5 text-base font-medium text-red-400 transition-colors hover:bg-red-500/10",
             collapsed && "justify-center px-0",
           )}
         >
@@ -150,11 +148,11 @@ export function Sidebar({ role }) {
         </button>
         {!collapsed ? (
           <>
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <Logo className="text-xs" />
+            <div className="flex items-center justify-between text-xs text-white/40">
+              <Logo className="text-xs" dark />
               <span>v1.0.0</span>
             </div>
-            <p className="text-center text-[11px] text-muted-foreground">
+            <p className="text-center text-[11px] text-white/40">
               © {new Date().getFullYear()} Tous droits réservés
             </p>
           </>
