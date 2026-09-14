@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Plus, LogIn } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSchoolsOverview } from "@/lib/platform-stats";
+import { getPeriodRange, inPeriod } from "@/lib/period-filter";
+import { PeriodFilter } from "@/components/layout/period-filter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +24,16 @@ import { DeleteSchoolButton } from "./delete-school-button";
 export default async function AdminSchoolsPage({ searchParams }) {
   const params = await searchParams;
   const supabase = await createClient();
-  const schools = await getSchoolsOverview(supabase);
+  let schools = await getSchoolsOverview(supabase);
+
+  if (params.q) {
+    const q = params.q.toString().toLowerCase();
+    schools = schools.filter((s) => s.name.toLowerCase().includes(q));
+  }
+  const range = getPeriodRange(params.period ?? "all");
+  if (range.start) {
+    schools = schools.filter((s) => inPeriod(s.created_at, range));
+  }
 
   return (
     <div className="space-y-6">
@@ -31,12 +42,15 @@ export default async function AdminSchoolsPage({ searchParams }) {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Établissements</h1>
           <p className="text-sm text-muted-foreground">Toutes les écoles inscrites sur iziecole.</p>
         </div>
-        <Button asChild>
-          <Link href="/admin/schools?new=1">
-            <Plus className="mr-1.5 h-4 w-4" />
-            Ajouter une école
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <PeriodFilter />
+          <Button asChild>
+            <Link href="/admin/schools?new=1">
+              <Plus className="mr-1.5 h-4 w-4" />
+              Ajouter une école
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {params.created ? (

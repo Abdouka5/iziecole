@@ -1,4 +1,5 @@
 import { getSubscriptionStatus } from "@/lib/subscription-status";
+import { formatFcfa } from "@/lib/subscription-plans";
 
 // RLS on schools/students/memberships already grants a super admin full
 // visibility (is_super_admin() is baked into is_member_of_school() /
@@ -37,4 +38,52 @@ export async function getSchoolsOverview(supabase) {
 export function percentChange(current, previous) {
   if (previous <= 0) return current > 0 ? 100 : 0;
   return Math.round(((current - previous) / previous) * 100);
+}
+
+// Real, computed notifications for the AdminHeader bell — no fabricated
+// unread counter, just the most recent notable platform events: new
+// schools, payments received, and subscriptions expiring soon or already
+// expired. `type` is a string (not an icon component) so this can cross
+// the server/client boundary as a prop into AdminHeader.
+export async function getPlatformNotifications(supabase) {
+  const [{ data: schools }, { data: payments }, overview] = await Promise.all([
+    supabase.from("schools").select("id, name, created_at").order("created_at", { ascending: false }).limit(5),
+    supabase
+      .from("subscription_payments")
+      .select("id, amount, paid_at, schools(name)")
+      .eq("status", "paid")
+      .order("paid_at", { ascending: false })
+      .limit(5),
+    getSchoolsOverview(supabase),
+  ]);
+
+  const expiring = overview.filter((s) => !s.subscription.active || s.subscription.daysRemaining <= 5);
+
+  const notifications = [
+    ...(schools ?? []).map((s) => ({
+      id: `school-${s.id}`,
+      type: "school",
+      title: "Nouvelle école inscrite",
+      subtitle: s.name,
+      at: s.created_at,
+    })),
+    ...(payments ?? []).map((p) => ({
+      id: `payment-${p.id}`,
+      type: "payment",
+      title: "Paiement reçu",
+      subtitle: `${formatFcfa(Number(p.amount))} — ${p.schools?.name ?? ""}`,
+      at: p.paid_at,
+    })),
+    ...expiring.slice(0, 5).map((s) => ({
+      id: `subscription-${s.id}`,
+      type: "subscription",
+      title: s.subscription.active ? "Abonnement bientôt expiré" : "Abonnement expiré",
+      subtitle: s.name,
+      at: s.subscription.expiresAt ?? s.created_at,
+    })),
+  ]
+    .sort((a, b) => new Date(b.at) - new Date(a.at))
+    .slice(0, 8);
+
+  return notifications;
 }

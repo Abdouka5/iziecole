@@ -1,5 +1,7 @@
 import { Users, ShieldCheck, GraduationCap, Ban, PlayCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getPeriodRange, inPeriod } from "@/lib/period-filter";
+import { PeriodFilter } from "@/components/layout/period-filter";
 import { AdminStatCard } from "@/components/layout/admin-stat-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,16 +32,27 @@ const ROLE_BADGE = {
   student: "bg-pink-100 text-pink-700",
 };
 
-export default async function AdminUsersPage() {
+export default async function AdminUsersPage({ searchParams }) {
+  const params = await searchParams;
   const supabase = await createClient();
 
-  const { data: users } = await supabase
+  const { data: allUsers } = await supabase
     .from("memberships")
-    .select("id, role, user_id, suspended, profiles(full_name, phone), schools(name)")
+    .select("id, role, user_id, suspended, created_at, profiles(full_name, phone), schools(name)")
     .order("role");
 
+  let users = allUsers ?? [];
+  if (params.q) {
+    const q = params.q.toString().toLowerCase();
+    users = users.filter((m) => (m.profiles?.full_name ?? "").toLowerCase().includes(q));
+  }
+  const range = getPeriodRange(params.period ?? "all");
+  if (range.start) {
+    users = users.filter((m) => inPeriod(m.created_at, range));
+  }
+
   const counts = { school_admin: 0, teacher: 0, other: 0 };
-  for (const m of users ?? []) {
+  for (const m of users) {
     if (m.role === "school_admin") counts.school_admin += 1;
     else if (m.role === "teacher") counts.teacher += 1;
     else counts.other += 1;
@@ -47,9 +60,12 @@ export default async function AdminUsersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Utilisateurs</h1>
-        <p className="text-sm text-muted-foreground">Tous les comptes, toutes écoles confondues.</p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Utilisateurs</h1>
+          <p className="text-sm text-muted-foreground">Tous les comptes, toutes écoles confondues.</p>
+        </div>
+        <PeriodFilter />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

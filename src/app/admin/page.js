@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Building2, Users, UserRound, Wallet, ArrowUpRight, Eye } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSchoolsOverview, percentChange } from "@/lib/platform-stats";
+import { getPeriodRange, previousPeriodRange, PERIOD_OPTIONS } from "@/lib/period-filter";
+import { PeriodFilter } from "@/components/layout/period-filter";
 import { formatFcfa } from "@/lib/subscription-plans";
 import { AdminStatCard } from "@/components/layout/admin-stat-card";
 import { Button } from "@/components/ui/button";
@@ -40,7 +42,8 @@ function timeAgo(date) {
   return `Il y a ${days} j`;
 }
 
-export default async function SuperAdminDashboard() {
+export default async function SuperAdminDashboard({ searchParams }) {
+  const params = await searchParams;
   const supabase = await createClient();
 
   const [schools, { data: students }, { data: profiles }, { data: payments }] = await Promise.all([
@@ -54,26 +57,32 @@ export default async function SuperAdminDashboard() {
       .order("paid_at", { ascending: false }),
   ]);
 
-  const thisMonth = monthBounds(0);
-  const lastMonth = monthBounds(1);
+  const period = params.period ?? "all";
+  const filtered = period !== "all";
+  // "all" has no natural comparison window, so it keeps the original
+  // month-vs-last-month framing; any specific period compares itself
+  // against an equal-length window right before it.
+  const currentRange = filtered ? getPeriodRange(period) : monthBounds(0);
+  const compareRange = filtered ? previousPeriodRange(currentRange) : monthBounds(1);
+  const periodLabel = PERIOD_OPTIONS.find((o) => o.value === period)?.label;
 
   const countInRange = (rows, dateKey, { start, end }) =>
     rows.filter((r) => {
       const d = new Date(r[dateKey]);
-      return d >= start && d < end;
+      return (!start || d >= start) && d < end;
     }).length;
 
-  const schoolsThisMonth = countInRange(schools, "created_at", thisMonth);
-  const schoolsLastMonth = countInRange(schools, "created_at", lastMonth);
-  const studentsThisMonth = countInRange(students ?? [], "created_at", thisMonth);
-  const studentsLastMonth = countInRange(students ?? [], "created_at", lastMonth);
-  const usersThisMonth = countInRange(profiles ?? [], "created_at", thisMonth);
-  const usersLastMonth = countInRange(profiles ?? [], "created_at", lastMonth);
-  const revenueThisMonth = (payments ?? [])
-    .filter((p) => new Date(p.paid_at) >= thisMonth.start && new Date(p.paid_at) < thisMonth.end)
+  const schoolsCurrent = countInRange(schools, "created_at", currentRange);
+  const schoolsCompare = countInRange(schools, "created_at", compareRange);
+  const studentsCurrent = countInRange(students ?? [], "created_at", currentRange);
+  const studentsCompare = countInRange(students ?? [], "created_at", compareRange);
+  const usersCurrent = countInRange(profiles ?? [], "created_at", currentRange);
+  const usersCompare = countInRange(profiles ?? [], "created_at", compareRange);
+  const revenueCurrent = (payments ?? [])
+    .filter((p) => new Date(p.paid_at) >= (currentRange.start ?? new Date(0)) && new Date(p.paid_at) < currentRange.end)
     .reduce((sum, p) => sum + Number(p.amount), 0);
-  const revenueLastMonth = (payments ?? [])
-    .filter((p) => new Date(p.paid_at) >= lastMonth.start && new Date(p.paid_at) < lastMonth.end)
+  const revenueCompare = (payments ?? [])
+    .filter((p) => compareRange.start && new Date(p.paid_at) >= compareRange.start && new Date(p.paid_at) < compareRange.end)
     .reduce((sum, p) => sum + Number(p.amount), 0);
 
   const months = Array.from({ length: 6 }, (_, i) => monthBounds(5 - i));
@@ -144,38 +153,41 @@ export default async function SuperAdminDashboard() {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Bonjour 👋</h1>
           <p className="text-sm text-muted-foreground">Voici un aperçu global de votre plateforme iziecole</p>
         </div>
-        <Button asChild>
-          <Link href="/admin/schools?new=1">Ajouter une école</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <PeriodFilter />
+          <Button asChild>
+            <Link href="/admin/schools?new=1">Ajouter une école</Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <AdminStatCard
           icon={Building2}
-          label="Établissements"
-          value={schools.length}
-          trend={schoolsLastMonth || schoolsThisMonth ? `${percentChange(schoolsThisMonth, schoolsLastMonth)}%` : null}
+          label={filtered ? `Nouvelles écoles (${periodLabel.toLowerCase()})` : "Établissements"}
+          value={filtered ? schoolsCurrent : schools.length}
+          trend={compareRange.start || schoolsCurrent ? `${percentChange(schoolsCurrent, schoolsCompare)}%` : null}
           accent="blue"
         />
         <AdminStatCard
           icon={Users}
-          label="Élèves"
-          value={(students ?? []).length.toLocaleString("fr-FR")}
-          trend={studentsLastMonth || studentsThisMonth ? `${percentChange(studentsThisMonth, studentsLastMonth)}%` : null}
+          label={filtered ? `Nouveaux élèves (${periodLabel.toLowerCase()})` : "Élèves"}
+          value={(filtered ? studentsCurrent : (students ?? []).length).toLocaleString("fr-FR")}
+          trend={compareRange.start || studentsCurrent ? `${percentChange(studentsCurrent, studentsCompare)}%` : null}
           accent="green"
         />
         <AdminStatCard
           icon={UserRound}
-          label="Utilisateurs"
-          value={(profiles ?? []).length.toLocaleString("fr-FR")}
-          trend={usersLastMonth || usersThisMonth ? `${percentChange(usersThisMonth, usersLastMonth)}%` : null}
+          label={filtered ? `Nouveaux utilisateurs (${periodLabel.toLowerCase()})` : "Utilisateurs"}
+          value={(filtered ? usersCurrent : (profiles ?? []).length).toLocaleString("fr-FR")}
+          trend={compareRange.start || usersCurrent ? `${percentChange(usersCurrent, usersCompare)}%` : null}
           accent="purple"
         />
         <AdminStatCard
           icon={Wallet}
-          label="Revenus du mois"
-          value={formatFcfa(revenueThisMonth)}
-          trend={revenueLastMonth || revenueThisMonth ? `${percentChange(revenueThisMonth, revenueLastMonth)}%` : null}
+          label={filtered ? `Revenus (${periodLabel.toLowerCase()})` : "Revenus du mois"}
+          value={formatFcfa(revenueCurrent)}
+          trend={compareRange.start || revenueCurrent ? `${percentChange(revenueCurrent, revenueCompare)}%` : null}
           accent="orange"
         />
       </div>

@@ -1,6 +1,8 @@
 import { Wallet, TrendingUp, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { formatFcfa } from "@/lib/subscription-plans";
+import { getPeriodRange, inPeriod, PERIOD_OPTIONS } from "@/lib/period-filter";
+import { PeriodFilter } from "@/components/layout/period-filter";
 import { AdminStatCard } from "@/components/layout/admin-stat-card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -26,31 +28,38 @@ const STATUS_BADGE = {
   cancelled: "bg-muted text-muted-foreground",
 };
 
-export default async function AdminPaymentsPage() {
+export default async function AdminPaymentsPage({ searchParams }) {
+  const params = await searchParams;
   const supabase = await createClient();
-  const { data: payments } = await supabase
+  const { data: allPayments } = await supabase
     .from("subscription_payments")
     .select("id, amount, status, period_label, paid_at, created_at, schools(name)")
     .order("created_at", { ascending: false });
 
-  const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-  const paid = (payments ?? []).filter((p) => p.status === "paid");
+  const period = params.period ?? "all";
+  const range = getPeriodRange(period);
+  const payments = range.start
+    ? (allPayments ?? []).filter((p) => inPeriod(p.paid_at ?? p.created_at, range))
+    : allPayments ?? [];
+
+  const paid = payments.filter((p) => p.status === "paid");
   const totalRevenue = paid.reduce((sum, p) => sum + Number(p.amount), 0);
-  const revenueThisMonth = paid
-    .filter((p) => new Date(p.paid_at) >= startOfMonth)
-    .reduce((sum, p) => sum + Number(p.amount), 0);
-  const pendingCount = (payments ?? []).filter((p) => p.status === "pending").length;
+  const pendingCount = payments.filter((p) => p.status === "pending").length;
+  const revenueLabel = period === "all" ? "Revenus totaux" : `Revenus (${PERIOD_OPTIONS.find((o) => o.value === period)?.label.toLowerCase()})`;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Paiements</h1>
-        <p className="text-sm text-muted-foreground">Historique des paiements d&apos;abonnement de toutes les écoles.</p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Paiements</h1>
+          <p className="text-sm text-muted-foreground">Historique des paiements d&apos;abonnement de toutes les écoles.</p>
+        </div>
+        <PeriodFilter />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <AdminStatCard icon={Wallet} label="Revenus totaux" value={formatFcfa(totalRevenue)} accent="blue" />
-        <AdminStatCard icon={TrendingUp} label="Revenus ce mois-ci" value={formatFcfa(revenueThisMonth)} accent="green" />
+        <AdminStatCard icon={Wallet} label={revenueLabel} value={formatFcfa(totalRevenue)} accent="blue" />
+        <AdminStatCard icon={TrendingUp} label="Nombre de paiements" value={paid.length} accent="green" />
         <AdminStatCard icon={Clock} label="Paiements en attente" value={pendingCount} accent="orange" />
       </div>
 
@@ -66,7 +75,7 @@ export default async function AdminPaymentsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {(payments ?? []).length === 0 ? (
+            {payments.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
                   Aucun paiement pour le moment.
