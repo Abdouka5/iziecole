@@ -37,7 +37,7 @@ export default async function AdminPaymentsPage({ searchParams }) {
     .order("created_at", { ascending: false });
 
   const period = params.period ?? "all";
-  const range = getPeriodRange(period);
+  const range = getPeriodRange(period, params.from, params.to);
   const payments = range.start
     ? (allPayments ?? []).filter((p) => inPeriod(p.paid_at ?? p.created_at, range))
     : allPayments ?? [];

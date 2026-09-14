@@ -6,12 +6,15 @@ export const PERIOD_OPTIONS = [
   { value: "6m", label: "6 derniers mois" },
   { value: "year", label: "Cette année" },
   { value: "all", label: "Tout" },
+  { value: "custom", label: "Période personnalisée" },
 ];
 
 // Returns { start: Date|null, end: Date, label } for a period key — start
 // is null for "all" (no lower bound). Defaults to "all" so pages behave
-// exactly as before when no ?period= is present.
-export function getPeriodRange(periodKey) {
+// exactly as before when no ?period= is present. For "custom", pass the
+// ?from=/?to= (YYYY-MM-DD) query values — either can be left empty (open
+// start, or "up to now" for the end).
+export function getPeriodRange(periodKey, customFrom, customTo) {
   const now = new Date();
   const end = now;
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -29,6 +32,11 @@ export function getPeriodRange(periodKey) {
       return { start: new Date(now.getFullYear(), now.getMonth() - 5, 1), end };
     case "year":
       return { start: new Date(now.getFullYear(), 0, 1), end };
+    case "custom":
+      return {
+        start: customFrom ? new Date(`${customFrom}T00:00:00`) : null,
+        end: customTo ? new Date(`${customTo}T23:59:59.999`) : now,
+      };
     case "all":
     default:
       return { start: null, end };

@@ -30,7 +30,7 @@ export default async function AdminSchoolsPage({ searchParams }) {
     const q = params.q.toString().toLowerCase();
     schools = schools.filter((s) => s.name.toLowerCase().includes(q));
   }
-  const range = getPeriodRange(params.period ?? "all");
+  const range = getPeriodRange(params.period ?? "all", params.from, params.to);
   if (range.start) {
     schools = schools.filter((s) => inPeriod(s.created_at, range));
   }

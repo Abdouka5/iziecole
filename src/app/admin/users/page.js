@@ -46,7 +46,7 @@ export default async function AdminUsersPage({ searchParams }) {
     const q = params.q.toString().toLowerCase();
     users = users.filter((m) => (m.profiles?.full_name ?? "").toLowerCase().includes(q));
   }
-  const range = getPeriodRange(params.period ?? "all");
+  const range = getPeriodRange(params.period ?? "all", params.from, params.to);
   if (range.start) {
     users = users.filter((m) => inPeriod(m.created_at, range));
   }

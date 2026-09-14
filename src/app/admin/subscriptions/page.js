@@ -23,7 +23,7 @@ export default async function AdminSubscriptionsPage({ searchParams }) {
 
   // Period filters by registration date (same as Établissements) — the
   // most well-defined "when did this row happen" field for a school.
-  const range = getPeriodRange(params.period ?? "all");
+  const range = getPeriodRange(params.period ?? "all", params.from, params.to);
   if (range.start) {
     schools = schools.filter((s) => inPeriod(s.created_at, range));
   }

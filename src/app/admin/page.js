@@ -62,7 +62,7 @@ export default async function SuperAdminDashboard({ searchParams }) {
   // "all" has no natural comparison window, so it keeps the original
   // month-vs-last-month framing; any specific period compares itself
   // against an equal-length window right before it.
-  const currentRange = filtered ? getPeriodRange(period) : monthBounds(0);
+  const currentRange = filtered ? getPeriodRange(period, params.from, params.to) : monthBounds(0);
   const compareRange = filtered ? previousPeriodRange(currentRange) : monthBounds(1);
   const periodLabel = PERIOD_OPTIONS.find((o) => o.value === period)?.label;
 
