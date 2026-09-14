@@ -19,7 +19,9 @@ export async function getSubscriptionStatus(supabase, schoolId) {
   ]);
 
   if (!lastPaid?.paid_at) {
-    return { active: false, expiresAt: null, daysRemaining: 0 };
+    // Distinct from a lapsed subscription — this school has never paid at
+    // all, so "expiré" (implying it once worked) would be misleading.
+    return { active: false, neverPaid: true, expiresAt: null, daysRemaining: 0 };
   }
 
   const expiresAt = new Date(lastPaid.paid_at);

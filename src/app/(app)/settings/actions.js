@@ -34,13 +34,21 @@ export async function paySubscription() {
     .select("id, amount, period_label")
     .single();
 
-  if (error) throw error;
+  if (error) {
+    redirect(`/settings?section=subscription&error=${encodeURIComponent(error.message)}`);
+  }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const { redirectUrl } = await createSubscriptionPaymentRequest({
-    subscriptionPayment,
-    appUrl,
-  });
+
+  let redirectUrl;
+  try {
+    ({ redirectUrl } = await createSubscriptionPaymentRequest({ subscriptionPayment, appUrl }));
+  } catch (payTechError) {
+    // Don't leave an orphaned "pending" row behind if PayTech never
+    // actually opened a payment session for it.
+    await supabase.from("subscription_payments").delete().eq("id", subscriptionPayment.id);
+    redirect(`/settings?section=subscription&error=${encodeURIComponent(payTechError.message)}`);
+  }
 
   redirect(redirectUrl);
 }

@@ -30,13 +30,15 @@ export default async function AppLayout({ children }) {
   const isExemptPage = isSettingsPage || pathname.startsWith("/support");
 
   let blocked = false;
+  let neverPaid = false;
   let subscriptionPrice, subscriptionDurationDays;
   if (membership.role !== "super_admin" && !isExemptPage) {
-    const [{ active }, platformSettings] = await Promise.all([
+    const [status, platformSettings] = await Promise.all([
       getSubscriptionStatus(supabase, membership.school.id),
       getPlatformSettings(supabase),
     ]);
-    blocked = !active;
+    blocked = !status.active;
+    neverPaid = Boolean(status.neverPaid);
     subscriptionPrice = platformSettings.subscriptionPrice;
     subscriptionDurationDays = platformSettings.subscriptionDurationDays;
   }
@@ -61,6 +63,7 @@ export default async function AppLayout({ children }) {
           {blocked ? (
             <SubscriptionBlocked
               canRenew={membership.role === "school_admin"}
+              neverPaid={neverPaid}
               subscriptionPrice={subscriptionPrice}
               subscriptionDurationDays={subscriptionDurationDays}
             />

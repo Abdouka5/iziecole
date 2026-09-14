@@ -71,7 +71,7 @@ export default async function SettingsPage({ searchParams }) {
 
         <div className="flex-1 space-y-4">
           {section === "subscription" && (
-            <SubscriptionSection supabase={supabase} membership={membership} />
+            <SubscriptionSection supabase={supabase} membership={membership} params={params} />
           )}
           {section === "general" && <GeneralSection membership={membership} />}
           {section === "year" && (
@@ -89,7 +89,7 @@ export default async function SettingsPage({ searchParams }) {
   );
 }
 
-async function SubscriptionSection({ supabase, membership }) {
+async function SubscriptionSection({ supabase, membership, params }) {
   const [{ data: payments }, status, { subscriptionPrice, subscriptionDurationDays }] = await Promise.all([
     supabase
       .from("subscription_payments")
@@ -114,25 +114,29 @@ async function SubscriptionSection({ supabase, membership }) {
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
               <p className="text-sm font-medium">
-                {status.active ? "Abonnement actif" : "Abonnement expiré"}
+                {status.active ? "Abonnement actif" : status.neverPaid ? "Abonnement non activé" : "Abonnement expiré"}
               </p>
               <p className="text-xs text-muted-foreground">
                 {status.active
                   ? `Renouvellement le ${status.expiresAt.toLocaleDateString("fr-FR")} (${status.daysRemaining} jours restants)`
-                  : "L'accès aux autres pages est suspendu jusqu'au renouvellement."}
+                  : status.neverPaid
+                    ? "Activez l'abonnement pour commencer à utiliser iziecole."
+                    : "L'accès aux autres pages est suspendu jusqu'au renouvellement."}
               </p>
             </div>
             <Badge
               variant="secondary"
               className={status.active ? "bg-status-good/10 text-status-good" : "bg-status-critical/10 text-status-critical"}
             >
-              {status.active ? "À jour" : "Expiré"}
+              {status.active ? "À jour" : status.neverPaid ? "Non activé" : "Expiré"}
             </Badge>
           </div>
 
+          {params.error ? <p className="text-sm text-destructive">{decodeURIComponent(params.error)}</p> : null}
+
           <form action={paySubscription}>
             <Button type="submit">
-              {status.active ? "Renouveler par anticipation" : "Renouveler maintenant"}
+              {status.active ? "Renouveler par anticipation" : status.neverPaid ? "Activer maintenant" : "Renouveler maintenant"}
             </Button>
           </form>
         </CardContent>
