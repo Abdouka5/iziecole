@@ -18,7 +18,6 @@ import {
   LogOut,
   ChevronsLeft,
   ChevronsRight,
-  ArrowLeftRight,
   LifeBuoy,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -116,7 +115,7 @@ export function Sidebar({ role }) {
         </button>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
+      <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
         {items.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
           return (
@@ -138,17 +137,6 @@ export function Sidebar({ role }) {
       </nav>
 
       <div className={cn("space-y-1 border-t border-white/10 p-4", collapsed && "flex flex-col items-center px-2")}>
-        <Link
-          href="/select-school"
-          title={collapsed ? "Changer d'établissement" : undefined}
-          className={cn(
-            "flex items-center gap-3 rounded-[11px] px-3 py-2.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white",
-            collapsed && "justify-center px-0",
-          )}
-        >
-          <ArrowLeftRight className="h-4.5 w-4.5 shrink-0" />
-          {!collapsed ? "Changer d'établissement" : null}
-        </Link>
         {role === "school_admin" ? (
           <Link
             href="/support"

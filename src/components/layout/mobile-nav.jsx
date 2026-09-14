@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, LogOut, ArrowLeftRight, LifeBuoy } from "lucide-react";
+import { Menu, X, LogOut, LifeBuoy } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { NAV_BY_ROLE } from "./sidebar";
@@ -47,7 +47,7 @@ export function MobileNav({ role }) {
               </button>
             </div>
 
-            <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
+            <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
               {items.map(({ href, label, icon: Icon }) => {
                 const active = pathname === href || pathname.startsWith(`${href}/`);
                 return (
@@ -68,14 +68,6 @@ export function MobileNav({ role }) {
             </nav>
 
             <div className="space-y-1 border-t border-white/10 p-4">
-              <Link
-                href="/select-school"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 rounded-[11px] px-3 py-2.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white"
-              >
-                <ArrowLeftRight className="h-4.5 w-4.5 shrink-0" />
-                Changer d&apos;établissement
-              </Link>
               {role === "school_admin" ? (
                 <Link
                   href="/support"

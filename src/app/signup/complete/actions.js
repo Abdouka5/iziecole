@@ -75,5 +75,5 @@ export async function completeGoogleSignup(formData) {
     maxAge: 60 * 60 * 24 * 30,
   });
 
-  redirect("/dashboard");
+  redirect("/signup/school-year");
 }

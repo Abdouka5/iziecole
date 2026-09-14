@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMembership } from "@/lib/school-context";
+import { datesFromLabel } from "@/lib/school-year-dates";
 
 export async function updateSchoolInfo(formData) {
   const membership = await getCurrentMembership();
@@ -23,19 +24,6 @@ export async function updateSchoolInfo(formData) {
   // not just this path, so the change is visible everywhere on first save.
   revalidatePath("/", "layout");
   redirect("/settings?section=general");
-}
-
-// The form only asks for a label ("2025-2026") — dates are derived from it
-// (September 1 -> August 31) rather than shown as separate fields, since
-// that's the school year everywhere in Senegal anyway.
-function datesFromLabel(label) {
-  const match = /^(\d{4})\D+(\d{4})$/.exec(label);
-  if (match) {
-    const [, startYear, endYear] = match;
-    return { startDate: `${startYear}-09-01`, endDate: `${endYear}-08-31` };
-  }
-  const year = new Date().getFullYear();
-  return { startDate: `${year}-09-01`, endDate: `${year + 1}-08-31` };
 }
 
 export async function createSchoolYear(formData) {
