@@ -1,22 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Search,
   Bell,
   Maximize,
-  LogOut,
-  ChevronDown,
   Building2,
   UserRound,
   Wallet,
   AlertTriangle,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -53,7 +47,7 @@ function useNow() {
   return now;
 }
 
-export function AdminHeader({ fullName, notifications = [] }) {
+export function AdminHeader({ notifications = [] }) {
   const router = useRouter();
   const now = useNow();
   const [query, setQuery] = useState("");
@@ -83,13 +77,6 @@ export function AdminHeader({ fullName, notifications = [] }) {
     return () => clearTimeout(timer);
   }, [query]);
 
-  async function handleSignOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  }
-
   function handleFullscreen() {
     if (document.fullscreenElement) {
       document.exitFullscreen();
@@ -103,13 +90,6 @@ export function AdminHeader({ fullName, notifications = [] }) {
     setQuery("");
     router.push(href);
   }
-
-  const initials = (fullName ?? "Super Admin")
-    .split(" ")
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
 
   const hasResults = results && (results.schools.length > 0 || results.users.length > 0);
   const dateTimeLabel = now
@@ -216,31 +196,6 @@ export function AdminHeader({ fullName, notifications = [] }) {
         <button type="button" onClick={handleFullscreen} className="text-muted-foreground hover:text-foreground" aria-label="Plein écran">
           <Maximize className="h-5 w-5" />
         </button>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 px-2">
-              <Avatar className="h-9 w-9 bg-[#146ef5] text-white">
-                <AvatarFallback className="bg-[#146ef5] text-white">{initials}</AvatarFallback>
-              </Avatar>
-              <span className="hidden text-left sm:block">
-                <span className="block text-sm font-medium leading-tight">{fullName ?? "Super Admin"}</span>
-                <span className="block text-xs leading-tight text-muted-foreground">Super Admin</span>
-              </span>
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem asChild>
-              <Link href="/admin/settings">Paramètres du compte</Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={handleSignOut}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Se déconnecter
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
     </header>
   );

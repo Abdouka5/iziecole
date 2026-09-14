@@ -17,7 +17,7 @@ export default async function AdminLayout({ children }) {
     <div className="flex h-screen overflow-hidden bg-secondary/30">
       <AdminSidebar fullName={membership.fullName} />
       <div className="flex flex-1 flex-col overflow-hidden">
-        <AdminHeader fullName={membership.fullName} notifications={notifications} />
+        <AdminHeader notifications={notifications} />
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
     </div>
