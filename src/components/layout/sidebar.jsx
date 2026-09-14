@@ -102,7 +102,7 @@ export function Sidebar({ role }) {
       <div className={cn("flex h-16 items-center border-b border-white/10", collapsed ? "justify-center px-2" : "justify-between px-5")}>
         {!collapsed ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src="/brand/wordmark-white.png" alt="iziecole" className="h-6 w-auto" />
+          <img src="/brand/wordmark-white.png" alt="iziecole" className="h-9 w-auto" />
         ) : null}
         <button
           type="button"
@@ -152,7 +152,7 @@ export function Sidebar({ role }) {
           <>
             <div className="flex items-center justify-between text-xs text-white/40">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand/wordmark-white.png" alt="iziecole" className="h-4 w-auto" />
+              <img src="/brand/wordmark-white.png" alt="iziecole" className="h-5 w-auto" />
               <span>v1.0.0</span>
             </div>
             <p className="text-center text-[11px] text-white/40">

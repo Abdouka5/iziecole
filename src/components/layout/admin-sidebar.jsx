@@ -47,7 +47,7 @@ export function AdminSidebar({ fullName }) {
     <aside className="hidden w-64 shrink-0 flex-col border-r border-white/10 bg-[#0b1220] md:flex">
       <div className="flex h-16 items-center gap-2 border-b border-white/10 px-5">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/wordmark-white.png" alt="iziecole" className="h-6 w-auto" />
+        <img src="/brand/wordmark-white.png" alt="iziecole" className="h-9 w-auto" />
       </div>
       <p className="px-5 pt-4 text-[11px] font-semibold uppercase tracking-widest text-white/40">
         Super Admin
