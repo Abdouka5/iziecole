@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Building2, Mail, Phone } from "lucide-react";
-import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +18,8 @@ export default async function SignupPage({ searchParams }) {
     <div className="flex min-h-screen items-center justify-center bg-secondary/40 p-6 py-12">
       <div className="w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center gap-2 text-center">
-          <Logo className="text-3xl" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/logologinpage.png" alt="iziecole" className="h-10 w-auto" />
           <p className="text-sm text-muted-foreground">
             La gestion scolaire, simplifiée
           </p>

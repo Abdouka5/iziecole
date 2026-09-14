@@ -19,7 +19,6 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
-import { Logo } from "@/components/brand/logo";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -101,7 +100,10 @@ export function Sidebar({ role }) {
       )}
     >
       <div className={cn("flex h-16 items-center border-b border-white/10", collapsed ? "justify-center px-2" : "justify-between px-5")}>
-        {!collapsed ? <Logo className="text-xl" dark /> : null}
+        {!collapsed ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src="/brand/wordmark-white.png" alt="iziecole" className="h-6 w-auto" />
+        ) : null}
         <button
           type="button"
           onClick={toggleCollapsed}
@@ -149,7 +151,8 @@ export function Sidebar({ role }) {
         {!collapsed ? (
           <>
             <div className="flex items-center justify-between text-xs text-white/40">
-              <Logo className="text-xs" dark />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/wordmark-white.png" alt="iziecole" className="h-4 w-auto" />
               <span>v1.0.0</span>
             </div>
             <p className="text-center text-[11px] text-white/40">
