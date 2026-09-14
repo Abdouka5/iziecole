@@ -18,6 +18,8 @@ import {
   LogOut,
   ChevronsLeft,
   ChevronsRight,
+  ArrowLeftRight,
+  LifeBuoy,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -26,7 +28,7 @@ const COLLAPSE_STORAGE_KEY = "iziecole_sidebar_collapsed";
 
 // One entry per role. Keep this in sync with the modules in
 // docs/cahier-des-charges.md §5 and the RLS policies each page relies on.
-const NAV_BY_ROLE = {
+export const NAV_BY_ROLE = {
   super_admin: [
     { href: "/admin", label: "Console Super Admin", icon: Building2 },
     { href: "/dashboard", label: "Tableau de bord (école)", icon: LayoutDashboard },
@@ -135,7 +137,31 @@ export function Sidebar({ role }) {
         })}
       </nav>
 
-      <div className={cn("space-y-3 border-t border-white/10 p-4", collapsed && "flex flex-col items-center px-2")}>
+      <div className={cn("space-y-1 border-t border-white/10 p-4", collapsed && "flex flex-col items-center px-2")}>
+        <Link
+          href="/select-school"
+          title={collapsed ? "Changer d'établissement" : undefined}
+          className={cn(
+            "flex items-center gap-3 rounded-[11px] px-3 py-2.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white",
+            collapsed && "justify-center px-0",
+          )}
+        >
+          <ArrowLeftRight className="h-4.5 w-4.5 shrink-0" />
+          {!collapsed ? "Changer d'établissement" : null}
+        </Link>
+        {role === "school_admin" ? (
+          <Link
+            href="/support"
+            title={collapsed ? "Contacter le support" : undefined}
+            className={cn(
+              "flex items-center gap-3 rounded-[11px] px-3 py-2.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white",
+              collapsed && "justify-center px-0",
+            )}
+          >
+            <LifeBuoy className="h-4.5 w-4.5 shrink-0" />
+            {!collapsed ? "Contacter le support" : null}
+          </Link>
+        ) : null}
         <button
           type="button"
           onClick={handleSignOut}
@@ -150,7 +176,7 @@ export function Sidebar({ role }) {
         </button>
         {!collapsed ? (
           <>
-            <div className="flex items-center justify-between text-xs text-white/40">
+            <div className="mt-2 flex items-center justify-between text-xs text-white/40">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/brand/wordmark-white.png" alt="iziecole" className="h-5 w-auto" />
               <span>v1.0.0</span>

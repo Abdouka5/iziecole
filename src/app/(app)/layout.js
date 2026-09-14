@@ -16,24 +16,14 @@ export default async function AppLayout({ children }) {
   if (membership.role === "super_admin" && !membership.school) redirect("/admin/schools");
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  const [{ count: unreadCount }, { data: latestAnnouncement }] = await Promise.all([
-    supabase
-      .from("messages")
-      .select("id", { count: "exact", head: true })
-      .eq("recipient_id", user.id)
-      .is("read_at", null),
-    supabase
-      .from("platform_announcements")
-      .select("id, title, body")
-      .eq("active", true)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-  ]);
+  const { data: latestAnnouncement } = await supabase
+    .from("platform_announcements")
+    .select("id, title, body")
+    .eq("active", true)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   const pathname = (await headers()).get("x-pathname") ?? "";
   const isSettingsPage = pathname.startsWith("/settings");
@@ -65,14 +55,9 @@ export default async function AppLayout({ children }) {
         <div className="print:hidden">
           {latestAnnouncement ? <PlatformAnnouncementBanner announcement={latestAnnouncement} /> : null}
           {needsSetup ? <SetupBanner /> : null}
-          <Header
-            school={membership.school}
-            role={membership.role}
-            fullName={membership.fullName}
-            notificationCount={unreadCount ?? 0}
-          />
+          <Header role={membership.role} />
         </div>
-        <main className="flex-1 overflow-y-auto bg-secondary/30 p-6 print:overflow-visible print:bg-white print:p-0">
+        <main className="flex-1 overflow-y-auto bg-secondary/30 p-4 sm:p-6 print:overflow-visible print:bg-white print:p-0">
           {blocked ? (
             <SubscriptionBlocked
               canRenew={membership.role === "school_admin"}
