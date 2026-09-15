@@ -3,7 +3,11 @@ import { NextResponse } from "next/server";
 import { getSubscriptionStatus } from "@/lib/subscription-status";
 import { SCHOOL_COOKIE } from "@/lib/school-cookie";
 
-const PUBLIC_PATHS = ["/", "/login", "/superadminlogin", "/signup", "/auth"];
+// /api is here too: API routes authenticate themselves however fits (the
+// PayTech IPN route verifies a signed payload, not a browser session) —
+// redirecting an unauthenticated server-to-server caller to /login just
+// silently breaks the webhook instead of ever reaching the route handler.
+const PUBLIC_PATHS = ["/", "/login", "/superadminlogin", "/signup", "/auth", "/api"];
 
 // Mirrors the (app) route group's pages that require a paid subscription.
 // Kept in sync by hand with src/app/(app)/* — /settings and /support stay
