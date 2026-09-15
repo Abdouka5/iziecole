@@ -77,7 +77,11 @@ export async function getPlatformNotifications(supabase) {
     ...expiring.slice(0, 5).map((s) => ({
       id: `subscription-${s.id}`,
       type: "subscription",
-      title: s.subscription.active ? "Abonnement bientôt expiré" : "Abonnement expiré",
+      title: s.subscription.active
+        ? "Abonnement bientôt expiré"
+        : s.subscription.neverPaid
+          ? "Abonnement non activé"
+          : "Abonnement expiré",
       subtitle: s.name,
       at: s.subscription.expiresAt ?? s.created_at,
     })),

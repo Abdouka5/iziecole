@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { MarkPaidButton } from "./mark-paid-button";
 
 const STATUS_LABELS = {
   pending: "En attente",
@@ -72,12 +73,13 @@ export default async function AdminPaymentsPage({ searchParams }) {
               <TableHead>Montant</TableHead>
               <TableHead>Statut</TableHead>
               <TableHead>Date</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {payments.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
                   Aucun paiement pour le moment.
                 </TableCell>
               </TableRow>
@@ -94,6 +96,11 @@ export default async function AdminPaymentsPage({ searchParams }) {
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {new Date(p.paid_at ?? p.created_at).toLocaleDateString("fr-FR")}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {p.status === "pending" ? (
+                      <MarkPaidButton paymentId={p.id} schoolName={p.schools?.name ?? "cette école"} />
+                    ) : null}
                   </TableCell>
                 </TableRow>
               ))

@@ -1,5 +1,6 @@
 import { Users, ShieldCheck, GraduationCap, Ban, PlayCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getSubscriptionStatus } from "@/lib/subscription-status";
 import { getPeriodRange, inPeriod } from "@/lib/period-filter";
 import { PeriodFilter } from "@/components/layout/period-filter";
 import { AdminStatCard } from "@/components/layout/admin-stat-card";
@@ -38,10 +39,19 @@ export default async function AdminUsersPage({ searchParams }) {
 
   const { data: allUsers } = await supabase
     .from("memberships")
-    .select("id, role, user_id, suspended, created_at, profiles(full_name, phone), schools(name)")
+    .select("id, role, user_id, school_id, suspended, created_at, profiles(full_name, phone), schools(name)")
     .order("role");
 
   let users = allUsers ?? [];
+
+  // A membership can be "not suspended" and still belong to a school that
+  // never paid or let its subscription lapse — that school's users can't
+  // actually use iziecole, so "Statut" needs to reflect that, not just the
+  // admin-controlled suspension flag. One status lookup per distinct
+  // school rather than per membership row.
+  const schoolIds = [...new Set(users.map((m) => m.school_id).filter(Boolean))];
+  const statuses = await Promise.all(schoolIds.map((id) => getSubscriptionStatus(supabase, id)));
+  const subscriptionBySchool = new Map(schoolIds.map((id, i) => [id, statuses[i]]));
   if (params.q) {
     const q = params.q.toString().toLowerCase();
     users = users.filter((m) => (m.profiles?.full_name ?? "").toLowerCase().includes(q));
@@ -96,6 +106,7 @@ export default async function AdminUsersPage({ searchParams }) {
             ) : (
               users.map((m) => {
                 const userName = m.profiles?.full_name ?? "Sans nom";
+                const subscription = subscriptionBySchool.get(m.school_id);
                 return (
                   <TableRow key={m.id}>
                     <TableCell className="font-medium">{userName}</TableCell>
@@ -109,6 +120,17 @@ export default async function AdminUsersPage({ searchParams }) {
                       {m.suspended ? (
                         <Badge variant="secondary" className="bg-status-critical/10 text-status-critical">
                           Suspendu
+                        </Badge>
+                      ) : subscription && !subscription.active ? (
+                        <Badge
+                          variant="secondary"
+                          className={
+                            subscription.neverPaid
+                              ? "bg-status-warning/10 text-status-warning"
+                              : "bg-status-critical/10 text-status-critical"
+                          }
+                        >
+                          {subscription.neverPaid ? "École non activée" : "École expirée"}
                         </Badge>
                       ) : (
                         <Badge variant="secondary" className="bg-status-good/10 text-status-good">

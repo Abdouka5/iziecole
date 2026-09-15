@@ -136,9 +136,19 @@ export default async function AdminSchoolsPage({ searchParams }) {
                   <TableCell>
                     <Badge
                       variant="secondary"
-                      className={school.subscription.active ? "bg-status-good/10 text-status-good" : "bg-status-critical/10 text-status-critical"}
+                      className={
+                        school.subscription.active
+                          ? "bg-status-good/10 text-status-good"
+                          : school.subscription.neverPaid
+                            ? "bg-status-warning/10 text-status-warning"
+                            : "bg-status-critical/10 text-status-critical"
+                      }
                     >
-                      {school.subscription.active ? `Actif (${school.subscription.daysRemaining} j.)` : "Expiré"}
+                      {school.subscription.active
+                        ? `Actif (${school.subscription.daysRemaining} j.)`
+                        : school.subscription.neverPaid
+                          ? "Non activé"
+                          : "Expiré"}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
