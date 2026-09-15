@@ -93,7 +93,7 @@ async function SubscriptionSection({ supabase, membership, params }) {
   const [{ data: payments }, status, { subscriptionPrice, subscriptionDurationDays }] = await Promise.all([
     supabase
       .from("subscription_payments")
-      .select("id, period_label, amount, status, created_at")
+      .select("id, period_label, amount, status, created_at, paid_at")
       .eq("school_id", membership.school.id)
       .order("created_at", { ascending: false })
       .limit(6),
@@ -150,17 +150,26 @@ async function SubscriptionSection({ supabase, membership, params }) {
           {payments?.length ? (
             <ul className="space-y-2 text-sm">
               {payments.map((p) => (
-                <li key={p.id} className="flex items-center justify-between border-b py-2 last:border-0">
-                  <span className="text-muted-foreground">{p.period_label}</span>
+                <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 border-b py-2 last:border-0">
+                  <span className="text-muted-foreground">
+                    {new Date(p.paid_at ?? p.created_at).toLocaleString("fr-FR", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
                   <span className="flex items-center gap-2">
                     {formatFcfa(Number(p.amount))}
                     <Badge variant={p.status === "paid" ? "default" : "secondary"}>
                       {SUBSCRIPTION_STATUS_LABELS[p.status] ?? p.status}
                     </Badge>
                     {p.status === "paid" ? (
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link href={`/invoice/${p.id}`} target="_blank" aria-label="Télécharger la facture">
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link href={`/invoice/${p.id}`} target="_blank">
                           <Download className="h-4 w-4" />
+                          Télécharger la facture
                         </Link>
                       </Button>
                     ) : null}

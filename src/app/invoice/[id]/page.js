@@ -10,6 +10,32 @@ const STATUS_LABELS = {
   cancelled: "Annulée",
 };
 
+// "15 sept. 2026 – 15 oct. 2026" reads like a repeated date at a glance —
+// spell out which end is which so it's unambiguously a range.
+function formatPeriod(label) {
+  const [start, end] = (label ?? "").split(" – ");
+  return start && end ? `Du ${start} au ${end}` : label;
+}
+
+function capitalize(word) {
+  return word ? word.charAt(0).toUpperCase() + word.slice(1) : word;
+}
+
+export async function generateMetadata({ params }) {
+  const { id } = await params;
+  const supabase = await createClient();
+  const { data: payment } = await supabase
+    .from("subscription_payments")
+    .select("created_at, paid_at")
+    .eq("id", id)
+    .maybeSingle();
+
+  const date = new Date(payment?.paid_at ?? payment?.created_at ?? Date.now());
+  const month = capitalize(date.toLocaleDateString("fr-FR", { month: "long" }));
+
+  return { title: `FACTURE ABONNEMENTS - ${month}` };
+}
+
 export default async function SubscriptionInvoicePage({ params }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -24,6 +50,15 @@ export default async function SubscriptionInvoicePage({ params }) {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-8 print:p-0">
+      <style>{`
+        @media print {
+          @page {
+            size: A4;
+            margin: 15mm;
+          }
+        }
+      `}</style>
+
       <div className="flex items-center justify-between print:hidden">
         <div>
           <h1 className="text-xl font-bold">Facture d&apos;abonnement</h1>
@@ -35,8 +70,9 @@ export default async function SubscriptionInvoicePage({ params }) {
       <div className="rounded-2xl border bg-white p-8 print:border-none">
         <div className="flex items-start justify-between border-b pb-6">
           <div>
-            <p className="text-lg font-bold">iziecole</p>
-            <p className="text-sm text-muted-foreground">La gestion scolaire, simplifiée</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/logologinpage.png" alt="iziecole" className="h-10 w-auto" />
+            <p className="mt-2 text-sm text-muted-foreground">La gestion scolaire, simplifiée</p>
           </div>
           <div className="text-right">
             <p className="text-sm text-muted-foreground">Facture N°</p>
@@ -70,7 +106,11 @@ export default async function SubscriptionInvoicePage({ params }) {
           </thead>
           <tbody>
             <tr className="border-b">
-              <td className="py-3">Abonnement iziecole — {payment.period_label}</td>
+              <td className="py-3">
+                Abonnement iziecole
+                <br />
+                <span className="text-xs text-muted-foreground">{formatPeriod(payment.period_label)}</span>
+              </td>
               <td className="py-3 text-right">{formatFcfa(Number(payment.amount))}</td>
             </tr>
           </tbody>
@@ -81,6 +121,11 @@ export default async function SubscriptionInvoicePage({ params }) {
             </tr>
           </tfoot>
         </table>
+
+        <div className="flex justify-end pt-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/cachetizi.png" alt="Cachet iziecole" className="h-24 w-24" />
+        </div>
 
         <p className="border-t pt-6 text-center text-xs text-muted-foreground">Merci de votre confiance — iziecole</p>
       </div>
