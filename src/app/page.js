@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { formatFcfa } from "@/lib/subscription-plans";
 import { getPlatformSettings } from "@/lib/platform-settings";
+import { getCurrentMembership } from "@/lib/school-context";
 import { createClient } from "@/lib/supabase/server";
 
 const FEATURES = [
@@ -73,9 +74,24 @@ const FAQ = [
 
 const linkClass = "text-[15px] font-medium text-[#475069] transition-colors hover:text-[#0d1526]";
 
+function getInitials(name) {
+  if (!name) return "?";
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+}
+
 export default async function LandingPage() {
   const supabase = await createClient();
-  const { subscriptionPrice, subscriptionDurationDays } = await getPlatformSettings(supabase);
+  const [{ subscriptionPrice, subscriptionDurationDays }, membership] = await Promise.all([
+    getPlatformSettings(supabase),
+    getCurrentMembership(),
+  ]);
+
+  const dashboardHref = membership?.role === "super_admin" ? "/admin" : "/dashboard";
 
   return (
     <div className="w-full overflow-x-hidden bg-white text-[#0d1526]">
@@ -92,15 +108,29 @@ export default async function LandingPage() {
             <a href="#tarif" className={linkClass}>
               Tarif
             </a>
-            <Link href="/login" className="text-[15px] font-semibold text-[#0d1526] transition-colors hover:text-[#1d4ed8]">
-              Se connecter
-            </Link>
-            <Link
-              href="/signup"
-              className="rounded-[10px] bg-[#1d4ed8] px-5 py-2.5 text-[15px] font-bold text-white shadow-[0_6px_18px_rgba(29,78,216,0.28)] transition-colors hover:bg-[#1741b6]"
-            >
-              Créer un compte
-            </Link>
+            {membership ? (
+              <Link
+                href={dashboardHref}
+                className="flex items-center gap-2.5 rounded-full border border-[#e5eaf2] bg-[#f4f7ff] py-1.5 pl-1.5 pr-4 text-[14px] font-semibold text-[#0d1526] transition-colors hover:border-[#1d4ed8]"
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#1d4ed8] text-[12px] font-bold text-white">
+                  {getInitials(membership.fullName)}
+                </span>
+                {membership.fullName || "Mon compte"}
+              </Link>
+            ) : (
+              <>
+                <Link href="/login" className="text-[15px] font-semibold text-[#0d1526] transition-colors hover:text-[#1d4ed8]">
+                  Se connecter
+                </Link>
+                <Link
+                  href="/signup"
+                  className="rounded-[10px] bg-[#1d4ed8] px-5 py-2.5 text-[15px] font-bold text-white shadow-[0_6px_18px_rgba(29,78,216,0.28)] transition-colors hover:bg-[#1741b6]"
+                >
+                  Créer un compte
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       </header>
@@ -149,10 +179,10 @@ export default async function LandingPage() {
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link
-                href="/signup"
+                href={membership ? dashboardHref : "/signup"}
                 className="inline-flex items-center gap-2 rounded-xl bg-[#1d4ed8] px-6 py-4 text-base font-bold text-white shadow-[0_14px_34px_rgba(29,78,216,0.45)] transition-colors hover:bg-[#2f63f0]"
               >
-                Créer votre compte école
+                {membership ? "Aller à mon tableau de bord" : "Créer votre compte école"}
                 <ArrowUpRight className="h-4 w-4" />
               </Link>
               <a
@@ -363,10 +393,10 @@ export default async function LandingPage() {
                   ))}
                 </ul>
                 <Link
-                  href="/signup"
+                  href={membership ? dashboardHref : "/signup"}
                   className="mt-7 block rounded-xl bg-[#1d4ed8] px-6 py-3.5 text-center text-base font-bold text-white shadow-[0_12px_26px_rgba(29,78,216,0.28)] transition-colors hover:bg-[#1741b6]"
                 >
-                  Créer votre compte école
+                  {membership ? "Aller à mon tableau de bord" : "Créer votre compte école"}
                 </Link>
               </div>
               <div
@@ -429,18 +459,29 @@ export default async function LandingPage() {
               aujourd&rsquo;hui.
             </p>
             <div className="mt-7 flex flex-wrap justify-center gap-3">
-              <Link
-                href="/signup"
-                className="rounded-xl bg-[#1d4ed8] px-7 py-4 text-base font-bold text-white shadow-[0_14px_30px_rgba(29,78,216,0.3)] transition-colors hover:bg-[#1741b6]"
-              >
-                Créer votre compte école
-              </Link>
-              <Link
-                href="/login"
-                className="rounded-xl border border-[#dfe4ef] bg-white px-7 py-4 text-base font-bold text-[#0d1526] transition-colors hover:border-[#1d4ed8] hover:text-[#1d4ed8]"
-              >
-                Se connecter
-              </Link>
+              {membership ? (
+                <Link
+                  href={dashboardHref}
+                  className="rounded-xl bg-[#1d4ed8] px-7 py-4 text-base font-bold text-white shadow-[0_14px_30px_rgba(29,78,216,0.3)] transition-colors hover:bg-[#1741b6]"
+                >
+                  Aller à mon tableau de bord
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/signup"
+                    className="rounded-xl bg-[#1d4ed8] px-7 py-4 text-base font-bold text-white shadow-[0_14px_30px_rgba(29,78,216,0.3)] transition-colors hover:bg-[#1741b6]"
+                  >
+                    Créer votre compte école
+                  </Link>
+                  <Link
+                    href="/login"
+                    className="rounded-xl border border-[#dfe4ef] bg-white px-7 py-4 text-base font-bold text-[#0d1526] transition-colors hover:border-[#1d4ed8] hover:text-[#1d4ed8]"
+                  >
+                    Se connecter
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </section>
@@ -471,12 +512,20 @@ export default async function LandingPage() {
           <div>
             <div className="text-sm font-bold text-white">Compte</div>
             <div className="mt-3 flex flex-col gap-2.5 text-sm">
-              <Link href="/login" className="transition-colors hover:text-[#f97316]">
-                Se connecter
-              </Link>
-              <Link href="/signup" className="transition-colors hover:text-[#f97316]">
-                Créer un compte
-              </Link>
+              {membership ? (
+                <Link href={dashboardHref} className="transition-colors hover:text-[#f97316]">
+                  Tableau de bord
+                </Link>
+              ) : (
+                <>
+                  <Link href="/login" className="transition-colors hover:text-[#f97316]">
+                    Se connecter
+                  </Link>
+                  <Link href="/signup" className="transition-colors hover:text-[#f97316]">
+                    Créer un compte
+                  </Link>
+                </>
+              )}
             </div>
           </div>
           <div>
