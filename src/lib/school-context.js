@@ -1,8 +1,9 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { SCHOOL_COOKIE } from "@/lib/school-cookie";
 
-export const SCHOOL_COOKIE = "iziecole_school_id";
+export { SCHOOL_COOKIE };
 
 // Resolves { role, school, fullName, userId } for the currently signed-in
 // user. Super admins don't need a selected school at all (the /admin

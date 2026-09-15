@@ -1,10 +1,36 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
+import { getSubscriptionStatus } from "@/lib/subscription-status";
+import { SCHOOL_COOKIE } from "@/lib/school-cookie";
 
 const PUBLIC_PATHS = ["/", "/login", "/superadminlogin", "/signup", "/auth"];
 
+// Mirrors the (app) route group's pages that require a paid subscription.
+// Kept in sync by hand with src/app/(app)/* — /settings and /support stay
+// reachable even when blocked (a school_admin needs /settings to pay),
+// matching the `isExemptPage` check in (app)/layout.js.
+const PROTECTED_APP_PATHS = [
+  "/dashboard",
+  "/students",
+  "/classes",
+  "/grades",
+  "/finance",
+  "/schedule",
+  "/personnel",
+  "/users",
+  "/documents",
+  "/communication",
+  "/caisse",
+];
+
 function isPublicPath(pathname) {
   return PUBLIC_PATHS.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
+}
+
+function isProtectedAppPath(pathname) {
+  return PROTECTED_APP_PATHS.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );
 }
@@ -54,6 +80,34 @@ export async function updateSession(request) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = request.nextUrl.pathname.startsWith("/admin") ? "/superadminlogin" : "/login";
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Enforced here, not just in (app)/layout.js: Next.js reuses that shared
+  // layout's rendered output across client-side navigations between
+  // sibling pages (e.g. /settings -> /dashboard), so a check that only
+  // runs inside the layout can go stale and let a blocked school through
+  // once it has rendered /settings (exempt) at least once. Middleware runs
+  // on every request, including those soft navigations, so it can't be
+  // bypassed that way.
+  if (user && isProtectedAppPath(request.nextUrl.pathname)) {
+    const schoolId = request.cookies.get(SCHOOL_COOKIE)?.value;
+    if (schoolId) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_super_admin")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!profile?.is_super_admin) {
+        const status = await getSubscriptionStatus(supabase, schoolId);
+        if (!status.active) {
+          const blockedUrl = request.nextUrl.clone();
+          blockedUrl.pathname = "/subscription-blocked";
+          blockedUrl.search = "";
+          return NextResponse.redirect(blockedUrl);
+        }
+      }
+    }
   }
 
   return response;
