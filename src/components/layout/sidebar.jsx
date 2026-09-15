@@ -60,7 +60,16 @@ export const NAV_BY_ROLE = {
   ],
 };
 
-export function Sidebar({ role }) {
+export const ROLE_LABELS = {
+  super_admin: "Super Admin",
+  school_admin: "Administrateur",
+  teacher: "Enseignant",
+  cashier: "Caissier",
+  parent: "Parent",
+  student: "Élève",
+};
+
+export function Sidebar({ role, fullName }) {
   const pathname = usePathname();
   const router = useRouter();
   const items = NAV_BY_ROLE[role] ?? NAV_BY_ROLE.school_admin;
@@ -96,11 +105,11 @@ export function Sidebar({ role }) {
   return (
     <aside
       className={cn(
-        "hidden shrink-0 flex-col border-r border-white/10 bg-[#0b1220] transition-[width] duration-200 md:flex",
+        "hidden h-screen shrink-0 flex-col border-r border-white/10 bg-[#0b1220] transition-[width] duration-200 md:flex",
         collapsed ? "w-[76px]" : "w-64",
       )}
     >
-      <div className={cn("flex h-16 items-center border-b border-white/10", collapsed ? "justify-center px-2" : "justify-between px-5")}>
+      <div className={cn("flex h-16 shrink-0 items-center border-b border-white/10", collapsed ? "justify-center px-2" : "justify-between px-5")}>
         {!collapsed ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src="/brand/wordmark-white.png" alt="iziecole" className="h-9 w-auto" />
@@ -115,7 +124,7 @@ export function Sidebar({ role }) {
         </button>
       </div>
 
-      <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
+      <nav className="sidebar-scroll flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
         {items.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
           return (
@@ -136,7 +145,7 @@ export function Sidebar({ role }) {
         })}
       </nav>
 
-      <div className={cn("space-y-1 border-t border-white/10 p-4", collapsed && "flex flex-col items-center px-2")}>
+      <div className={cn("shrink-0 space-y-1 border-t border-white/10 p-3", collapsed && "flex flex-col items-center px-2")}>
         {role === "school_admin" ? (
           <Link
             href="/support"
@@ -150,6 +159,14 @@ export function Sidebar({ role }) {
             {!collapsed ? "Contacter le support" : null}
           </Link>
         ) : null}
+
+        {!collapsed ? (
+          <div className="px-3 py-2">
+            <p className="truncate text-sm font-semibold text-white">{fullName || "Mon compte"}</p>
+            <p className="text-xs font-medium text-[#f9a86b]">{ROLE_LABELS[role] ?? role}</p>
+          </div>
+        ) : null}
+
         <button
           type="button"
           onClick={handleSignOut}
@@ -162,18 +179,6 @@ export function Sidebar({ role }) {
           <LogOut className="h-5 w-5 shrink-0" />
           {!collapsed ? "Déconnexion" : null}
         </button>
-        {!collapsed ? (
-          <>
-            <div className="mt-2 flex items-center justify-between text-xs text-white/40">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand/wordmark-white.png" alt="iziecole" className="h-5 w-auto" />
-              <span>v1.0.0</span>
-            </div>
-            <p className="text-center text-[11px] text-white/40">
-              © {new Date().getFullYear()} Tous droits réservés
-            </p>
-          </>
-        ) : null}
       </div>
     </aside>
   );

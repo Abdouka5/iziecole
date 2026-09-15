@@ -26,7 +26,7 @@ function useNow() {
   return now;
 }
 
-export function Header({ role }) {
+export function Header({ role, fullName }) {
   const router = useRouter();
   const pathname = usePathname();
   const now = useNow();
@@ -71,7 +71,7 @@ export function Header({ role }) {
 
   return (
     <header className="flex h-16 items-center justify-between gap-4 border-b bg-card px-4 sm:px-6">
-      <MobileNav role={role} />
+      <MobileNav role={role} fullName={fullName} />
 
       <div ref={boxRef} className="relative w-full max-w-md">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

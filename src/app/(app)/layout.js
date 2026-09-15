@@ -51,13 +51,13 @@ export default async function AppLayout({ children }) {
   return (
     <div className="flex h-screen overflow-hidden print:block print:h-auto print:overflow-visible">
       <div className="print:hidden">
-        <Sidebar role={membership.role} />
+        <Sidebar role={membership.role} fullName={membership.fullName} />
       </div>
       <div className="flex flex-1 flex-col overflow-hidden print:block print:overflow-visible">
         <div className="print:hidden">
           {latestAnnouncement ? <PlatformAnnouncementBanner announcement={latestAnnouncement} /> : null}
           {needsSetup ? <SetupBanner /> : null}
-          <Header role={membership.role} />
+          <Header role={membership.role} fullName={membership.fullName} />
         </div>
         <main className="flex-1 overflow-y-auto bg-secondary/30 p-4 sm:p-6 print:overflow-visible print:bg-white print:p-0">
           {blocked ? (

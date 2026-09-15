@@ -172,6 +172,24 @@ html {
   }
 }
 
+/* Thin, subtle scrollbar for the sidebar's nav list — signals that just
+   that list scrolls independently from the page, without the bulky
+   default scrollbar competing with the dark sidebar background. */
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 20%) transparent;
+}
+.sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background-color: rgb(255 255 255 / 20%);
+  border-radius: 9999px;
+}
+
 @media print {
   @page {
     margin: 8mm;
