@@ -2,18 +2,14 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { getCurrentMembership } from "@/lib/school-context";
 import { createClient } from "@/lib/supabase/server";
+import { getSubscriptionStatus } from "@/lib/subscription-status";
+import { getPlatformSettings } from "@/lib/platform-settings";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { SubscriptionBlocked } from "@/components/layout/subscription-blocked";
 import { SetupBanner } from "@/components/layout/setup-banner";
 import { PlatformAnnouncementBanner } from "@/components/layout/platform-announcement-banner";
 
-// Whether a school's subscription is active is checked in middleware, not
-// here: middleware runs before every navigation (including client-side
-// ones), while this layout can be reused across sibling routes without
-// re-executing (see src/lib/supabase/middleware.js for the full story of
-// why that made a check here alone unsafe). Duplicating the same two
-// Supabase queries again on every render was also just wasted latency —
-// keep this layout to what only it needs.
 export default async function AppLayout({ children }) {
   const membership = await getCurrentMembership();
   if (!membership) redirect("/select-school");
@@ -31,6 +27,21 @@ export default async function AppLayout({ children }) {
 
   const pathname = (await headers()).get("x-pathname") ?? "";
   const isSettingsPage = pathname.startsWith("/settings");
+  const isExemptPage = isSettingsPage || pathname.startsWith("/support");
+
+  let blocked = false;
+  let neverPaid = false;
+  let subscriptionPrice, subscriptionDurationDays;
+  if (membership.role !== "super_admin" && !isExemptPage) {
+    const [status, platformSettings] = await Promise.all([
+      getSubscriptionStatus(supabase, membership.school.id),
+      getPlatformSettings(supabase),
+    ]);
+    blocked = !status.active;
+    neverPaid = Boolean(status.neverPaid);
+    subscriptionPrice = platformSettings.subscriptionPrice;
+    subscriptionDurationDays = platformSettings.subscriptionDurationDays;
+  }
 
   const needsSetup =
     membership.role === "school_admin" &&
@@ -49,7 +60,16 @@ export default async function AppLayout({ children }) {
           <Header role={membership.role} fullName={membership.fullName} />
         </div>
         <main className="flex-1 overflow-y-auto bg-secondary/30 p-4 sm:p-6 print:overflow-visible print:bg-white print:p-0">
-          {children}
+          {blocked ? (
+            <SubscriptionBlocked
+              canRenew={membership.role === "school_admin"}
+              neverPaid={neverPaid}
+              subscriptionPrice={subscriptionPrice}
+              subscriptionDurationDays={subscriptionDurationDays}
+            />
+          ) : (
+            children
+          )}
         </main>
       </div>
     </div>

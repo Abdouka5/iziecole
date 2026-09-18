@@ -11,8 +11,8 @@ const PUBLIC_PATHS = ["/", "/login", "/superadminlogin", "/signup", "/auth", "/a
 
 // Mirrors the (app) route group's pages that require a paid subscription.
 // Kept in sync by hand with src/app/(app)/* — /settings and /support stay
-// out of this list on purpose, so they're reachable even when blocked (a
-// school_admin needs /settings to pay).
+// reachable even when blocked (a school_admin needs /settings to pay),
+// matching the `isExemptPage` check in (app)/layout.js.
 const PROTECTED_APP_PATHS = [
   "/dashboard",
   "/students",
@@ -41,9 +41,9 @@ function isProtectedAppPath(pathname) {
 
 export async function updateSession(request) {
   // Forwarded so Server Components can read the current path via
-  // headers() from next/headers — layouts don't otherwise get it, and
-  // (app)/layout.js needs it to know whether it's on /settings (to skip
-  // the "complete your school profile" banner there).
+  // headers() from next/headers — layouts don't otherwise get it, and the
+  // subscription gate in (app)/layout.js needs to know whether it's on
+  // /settings (always reachable, even when the subscription is expired).
   request.headers.set("x-pathname", request.nextUrl.pathname);
 
   let response = NextResponse.next({ request });
@@ -96,19 +96,20 @@ export async function updateSession(request) {
   if (user && isProtectedAppPath(request.nextUrl.pathname)) {
     const schoolId = request.cookies.get(SCHOOL_COOKIE)?.value;
     if (schoolId) {
-      // Run both round-trips concurrently — neither depends on the other,
-      // and this runs on every protected navigation, so halving it from
-      // two sequential hops to one matters.
-      const [{ data: profile }, status] = await Promise.all([
-        supabase.from("profiles").select("is_super_admin").eq("id", user.id).maybeSingle(),
-        getSubscriptionStatus(supabase, schoolId),
-      ]);
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_super_admin")
+        .eq("id", user.id)
+        .maybeSingle();
 
-      if (!profile?.is_super_admin && !status.active) {
-        const blockedUrl = request.nextUrl.clone();
-        blockedUrl.pathname = "/subscription-blocked";
-        blockedUrl.search = "";
-        return NextResponse.redirect(blockedUrl);
+      if (!profile?.is_super_admin) {
+        const status = await getSubscriptionStatus(supabase, schoolId);
+        if (!status.active) {
+          const blockedUrl = request.nextUrl.clone();
+          blockedUrl.pathname = "/subscription-blocked";
+          blockedUrl.search = "";
+          return NextResponse.redirect(blockedUrl);
+        }
       }
     }
   }
