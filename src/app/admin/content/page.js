@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
+import { ModalSubmitButton } from "@/components/ui/modal-submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,9 +43,9 @@ export default async function AdminContentPage({ searchParams }) {
         description="Visible par tous les membres connectés, de toutes les écoles."
         footer={
           <>
-            <Button type="submit" form="new-announcement-form">
+            <ModalSubmitButton form="new-announcement-form" pendingText="Publication...">
               Publier
-            </Button>
+            </ModalSubmitButton>
             <Button variant="outline" asChild>
               <Link href="/admin/content">Annuler</Link>
             </Button>

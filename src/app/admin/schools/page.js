@@ -5,6 +5,7 @@ import { getSchoolsOverview } from "@/lib/platform-stats";
 import { getPeriodRange, inPeriod } from "@/lib/period-filter";
 import { PeriodFilter } from "@/components/layout/period-filter";
 import { Button } from "@/components/ui/button";
+import { ModalSubmitButton } from "@/components/ui/modal-submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -69,9 +70,9 @@ export default async function AdminSchoolsPage({ searchParams }) {
         description="Crée l'établissement et le compte de son premier administrateur."
         footer={
           <>
-            <Button type="submit" form="new-school-form">
+            <ModalSubmitButton form="new-school-form" pendingText="Création...">
               Créer l&apos;école
-            </Button>
+            </ModalSubmitButton>
             <Button variant="outline" asChild>
               <Link href="/admin/schools">Annuler</Link>
             </Button>

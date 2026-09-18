@@ -16,6 +16,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/layout/stat-card";
 import { FormModal } from "@/components/layout/form-modal";
 import { Button } from "@/components/ui/button";
+import { ModalSubmitButton } from "@/components/ui/modal-submit-button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,7 +41,7 @@ import { GroupedBarChart } from "@/components/charts/grouped-bar-chart";
 import { DonutChart } from "@/components/charts/donut-chart";
 import { StudentCombobox } from "./student-combobox";
 import { ExportReportButton } from "./export-report-button";
-import { recordPayment, createExpense, deleteExpense } from "./actions";
+import { recordPayment, createExpense, deleteExpense, deletePayment } from "./actions";
 
 const MONTH_LABELS = [
   "Jan.", "Fév.", "Mars", "Avr.", "Mai", "Juin",
@@ -198,9 +199,9 @@ export default async function FinancePage({ searchParams }) {
         description="Un reçu imprimable (format thermique) sera proposé une fois le paiement enregistré."
         footer={
           <>
-            <Button type="submit" form="new-payment-form">
+            <ModalSubmitButton form="new-payment-form" pendingText="Enregistrement...">
               Enregistrer le paiement
-            </Button>
+            </ModalSubmitButton>
             <Button variant="outline" asChild>
               <Link href="/finance">Annuler</Link>
             </Button>
@@ -282,9 +283,9 @@ export default async function FinancePage({ searchParams }) {
         description="Enregistrez une dépense de fonctionnement (salaires, fournitures, entretien...)."
         footer={
           <>
-            <Button type="submit" form="new-expense-form">
+            <ModalSubmitButton form="new-expense-form" pendingText="Enregistrement...">
               Enregistrer la dépense
-            </Button>
+            </ModalSubmitButton>
             <Button variant="outline" asChild>
               <Link href="/finance">Annuler</Link>
             </Button>
@@ -369,6 +370,27 @@ export default async function FinancePage({ searchParams }) {
                               <Printer className="h-4 w-4" />
                             </Link>
                           </Button>
+                          {isAdmin ? (
+                            <form
+                              action={deletePayment}
+                              onSubmit={(e) => {
+                                if (!confirm("Supprimer ce paiement ? Cette action est irréversible.")) {
+                                  e.preventDefault();
+                                }
+                              }}
+                            >
+                              <input type="hidden" name="paymentId" value={p.id} />
+                              <Button
+                                type="submit"
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive hover:text-destructive"
+                                aria-label="Supprimer le paiement"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </form>
+                          ) : null}
                         </div>
                       </TableCell>
                     </TableRow>

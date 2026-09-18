@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/layout/stat-card";
 import { FormModal } from "@/components/layout/form-modal";
 import { Button } from "@/components/ui/button";
+import { ModalSubmitButton } from "@/components/ui/modal-submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -117,9 +118,9 @@ export default async function StudentsPage({ searchParams }) {
         className="sm:max-w-2xl"
         footer={
           <>
-            <Button type="submit" form="new-student-form">
+            <ModalSubmitButton form="new-student-form" pendingText="Création...">
               Créer l&apos;élève
-            </Button>
+            </ModalSubmitButton>
             <Button variant="outline" asChild>
               <Link href="/students">Annuler</Link>
             </Button>
@@ -194,9 +195,9 @@ export default async function StudentsPage({ searchParams }) {
           className="sm:max-w-2xl"
           footer={
             <>
-              <Button type="submit" form="edit-student-form">
+              <ModalSubmitButton form="edit-student-form" pendingText="Enregistrement...">
                 Enregistrer les modifications
-              </Button>
+              </ModalSubmitButton>
               <Button variant="outline" asChild>
                 <Link href="/students">Annuler</Link>
               </Button>

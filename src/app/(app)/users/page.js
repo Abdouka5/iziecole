@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/layout/stat-card";
 import { FormModal } from "@/components/layout/form-modal";
 import { Button } from "@/components/ui/button";
+import { ModalSubmitButton } from "@/components/ui/modal-submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -109,9 +110,9 @@ export default async function UsersPage({ searchParams }) {
           description="Créez son compte, puis partagez-lui l'e-mail et le mot de passe choisis ici — aucun e-mail n'est envoyé automatiquement."
           footer={
             <>
-              <Button type="submit" form="new-user-form">
+              <ModalSubmitButton form="new-user-form" pendingText="Création...">
                 Créer le compte
-              </Button>
+              </ModalSubmitButton>
               <Button variant="outline" asChild>
                 <Link href="/users">Annuler</Link>
               </Button>
@@ -165,9 +166,9 @@ export default async function UsersPage({ searchParams }) {
           description="L'adresse e-mail de connexion ne peut pas être modifiée ici."
           footer={
             <>
-              <Button type="submit" form="edit-user-form">
+              <ModalSubmitButton form="edit-user-form" pendingText="Enregistrement...">
                 Enregistrer les modifications
-              </Button>
+              </ModalSubmitButton>
               <Button variant="outline" asChild>
                 <Link href="/users">Annuler</Link>
               </Button>

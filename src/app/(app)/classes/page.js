@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/layout/stat-card";
 import { FormModal } from "@/components/layout/form-modal";
 import { Button } from "@/components/ui/button";
+import { ModalSubmitButton } from "@/components/ui/modal-submit-button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -102,9 +103,9 @@ export default async function ClassesPage({ searchParams }) {
         footer={
           currentYear && (levels ?? []).length ? (
             <>
-              <Button type="submit" form="new-class-form">
+              <ModalSubmitButton form="new-class-form" pendingText="Création...">
                 Créer la classe
-              </Button>
+              </ModalSubmitButton>
               <Button variant="outline" asChild>
                 <Link href="/classes">Annuler</Link>
               </Button>

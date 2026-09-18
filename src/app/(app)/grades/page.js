@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/layout/stat-card";
 import { FormModal } from "@/components/layout/form-modal";
 import { Button } from "@/components/ui/button";
+import { ModalSubmitButton } from "@/components/ui/modal-submit-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -171,9 +172,9 @@ export default async function GradesPage({ searchParams }) {
         footer={
           readyToEnter && roster.length > 0 ? (
             <>
-              <Button type="submit" form="grades-entry-form">
+              <ModalSubmitButton form="grades-entry-form" pendingText="Enregistrement...">
                 Enregistrer les notes
-              </Button>
+              </ModalSubmitButton>
               <Button variant="outline" asChild>
                 <Link href={`/grades?${closeEntryParams.toString()}`}>Annuler</Link>
               </Button>

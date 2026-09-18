@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/layout/stat-card";
 import { FormModal } from "@/components/layout/form-modal";
 import { Button } from "@/components/ui/button";
+import { ModalSubmitButton } from "@/components/ui/modal-submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -90,9 +91,9 @@ export default async function PersonnelPage({ searchParams }) {
           description="Ceci ajoute une fiche à l'annuaire du personnel — aucun compte de connexion n'est créé. Pour donner un accès à l'application, utilisez le module Utilisateurs."
           footer={
             <>
-              <Button type="submit" form="new-staff-form">
+              <ModalSubmitButton form="new-staff-form" pendingText="Ajout...">
                 Ajouter
-              </Button>
+              </ModalSubmitButton>
               <Button variant="outline" asChild>
                 <Link href="/personnel">Annuler</Link>
               </Button>
@@ -136,9 +137,9 @@ export default async function PersonnelPage({ searchParams }) {
           title="Modifier le membre du personnel"
           footer={
             <>
-              <Button type="submit" form="edit-staff-form">
+              <ModalSubmitButton form="edit-staff-form" pendingText="Enregistrement...">
                 Enregistrer les modifications
-              </Button>
+              </ModalSubmitButton>
               <Button variant="outline" asChild>
                 <Link href="/personnel">Annuler</Link>
               </Button>

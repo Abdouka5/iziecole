@@ -166,3 +166,12 @@ export async function deleteExpense(formData) {
   await supabase.from("expenses").delete().eq("id", expenseId);
   revalidatePath("/finance");
 }
+
+export async function deletePayment(formData) {
+  const supabase = await createClient();
+  const paymentId = formData.get("paymentId")?.toString();
+  if (!paymentId) return;
+
+  await supabase.from("payments").delete().eq("id", paymentId);
+  revalidatePath("/finance");
+}
