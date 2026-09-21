@@ -2,11 +2,13 @@ import Link from "next/link";
 import { FileText, BarChart3, Users2, Award, PenSquare } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMembership } from "@/lib/school-context";
+import { getTermsForCurrentYear } from "@/lib/school-defaults";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/layout/stat-card";
 import { FormModal } from "@/components/layout/form-modal";
 import { Button } from "@/components/ui/button";
 import { ModalSubmitButton } from "@/components/ui/modal-submit-button";
+import { FormPendingBridge } from "@/components/ui/form-pending-bridge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -38,93 +40,107 @@ function studentAverages(grades) {
   return averages;
 }
 
+// Accent- and case-insensitive, so "eleve" finds "Élève".
+const normalize = (text) =>
+  text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
 export default async function GradesPage({ searchParams }) {
   const params = await searchParams;
   const membership = await getCurrentMembership();
   const supabase = await createClient();
   const schoolId = membership.school.id;
 
-  const [{ data: classes }, { data: terms }, { data: allGrades }] = await Promise.all([
-    supabase.from("classes").select("id, name").eq("school_id", schoolId).order("name"),
-    supabase.from("terms").select("id, name, sequence").eq("school_id", schoolId).order("sequence"),
-    supabase
-      .from("grades")
-      .select("student_id, score, max_score, class_subjects(coefficient, class_id, subjects(name))")
-      .eq("school_id", schoolId),
-  ]);
-
-  const schoolAverages = studentAverages(allGrades ?? []);
-  const overallAverage = schoolAverages.size
-    ? [...schoolAverages.values()].reduce((a, b) => a + b, 0) / schoolAverages.size
-    : 0;
-  const strugglingCount = [...schoolAverages.values()].filter((avg) => avg < 10).length;
-  const honorsCount = [...schoolAverages.values()].filter((avg) => avg >= 16).length;
-
   const classId = params.classId;
   const termId = params.termId;
-  const classSubjectId = params.subjectId;
+  const subjectId = params.subjectId;
+  const search = params.q?.trim() ?? "";
   const entryOpen = Boolean(params.entry);
 
+  const [{ data: classes }, { data: subjects }, { data: allGrades }, { terms }] = await Promise.all([
+    supabase.from("classes").select("id, name").eq("school_id", schoolId).order("name"),
+    supabase.from("subjects").select("id, name").eq("school_id", schoolId).order("name"),
+    supabase
+      .from("grades")
+      .select("student_id, score, max_score, term_id, class_subjects(coefficient, class_id, subject_id, subjects(name))")
+      .eq("school_id", schoolId),
+    getTermsForCurrentYear(supabase, schoolId),
+  ]);
+
+  const selectedTerm = terms.find((t) => t.id === termId);
+  const selectedSubject = (subjects ?? []).find((s) => s.id === subjectId);
+  const selectedClass = (classes ?? []).find((c) => c.id === classId);
+
+  // One filtered set drives the cards, the results table and the stats, so
+  // the class / période / matière filters change everything on the page.
+  const filteredGrades = (allGrades ?? []).filter(
+    (g) =>
+      (!classId || g.class_subjects?.class_id === classId) &&
+      (!termId || g.term_id === termId) &&
+      (!subjectId || g.class_subjects?.subject_id === subjectId),
+  );
+
+  const filteredAverages = studentAverages(filteredGrades);
+  const overallAverage = filteredAverages.size
+    ? [...filteredAverages.values()].reduce((a, b) => a + b, 0) / filteredAverages.size
+    : 0;
+  const strugglingCount = [...filteredAverages.values()].filter((avg) => avg < 10).length;
+  const honorsCount = [...filteredAverages.values()].filter((avg) => avg >= 16).length;
+
   const entryHrefParams = new URLSearchParams(
-    Object.entries(params).filter(([k]) => k !== "entry"),
+    Object.entries(params).filter(([k]) => !["entry", "saved", "entryError"].includes(k)),
   );
   entryHrefParams.set("entry", "1");
   const closeEntryParams = new URLSearchParams(
-    Object.entries(params).filter(([k]) => k !== "entry"),
+    Object.entries(params).filter(([k]) => !["entry", "saved", "entryError"].includes(k)),
   );
 
-  const { data: classSubjectsRaw } = classId
-    ? await supabase
-        .from("class_subjects")
-        .select("id, coefficient, subjects(name)")
-        .eq("class_id", classId)
-    : { data: [] };
-  const subjectOptions = (classSubjectsRaw ?? []).map((cs) => ({
-    classSubjectId: cs.id,
-    name: cs.subjects?.name ?? "Matière",
-  }));
-
-  let roster = [];
+  let fullRoster = [];
   if (classId) {
     const { data: enrollments } = await supabase
       .from("enrollments")
       .select("student_id, students(id, first_name, last_name)")
       .eq("class_id", classId)
       .eq("status", "active");
-
-    let existingGrades = [];
-    if (classSubjectId && termId) {
-      const { data } = await supabase
-        .from("grades")
-        .select("student_id, score")
-        .eq("class_subject_id", classSubjectId)
-        .eq("term_id", termId);
-      existingGrades = data ?? [];
-    }
-
-    roster = (enrollments ?? [])
+    fullRoster = (enrollments ?? [])
+      .filter((e) => e.students?.id)
       .map((e) => ({
-        id: e.students?.id,
-        name: `${e.students?.first_name ?? ""} ${e.students?.last_name ?? ""}`.trim(),
-        score: existingGrades.find((g) => g.student_id === e.students?.id)?.score ?? "",
-      }))
-      .filter((s) => !params.q || s.name.toLowerCase().includes(params.q.toLowerCase()));
+        id: e.students.id,
+        name: `${e.students.first_name ?? ""} ${e.students.last_name ?? ""}`.trim(),
+      }));
   }
+  const matchesSearch = (name) => !search || normalize(name).includes(normalize(search));
 
-  // "Résultats par classe": every student in the class, averaged across
-  // whichever subjects/terms already have grades.
-  const classAverages = [];
-  if (classId && allGrades) {
-    const classGradeRows = allGrades.filter((g) => g.class_subjects?.class_id === classId);
-    const averages = studentAverages(classGradeRows);
-    for (const row of roster) {
-      classAverages.push({ name: row.name, average: averages.get(row.id) ?? null });
+  // Rank is among the whole class (only students who have a grade in the
+  // current filter), and searching only narrows what is displayed.
+  const ranked = fullRoster
+    .map((s) => ({ ...s, average: filteredAverages.get(s.id) ?? null }))
+    .sort((a, b) => (b.average ?? -1) - (a.average ?? -1));
+  let nextRank = 1;
+  for (const row of ranked) row.rank = row.average != null ? nextRank++ : null;
+  const resultRows = ranked.filter((r) => matchesSearch(r.name));
+
+  const readyToEnter = Boolean(classId && subjectId && termId);
+  const existingScores = new Map();
+  if (readyToEnter) {
+    for (const g of allGrades ?? []) {
+      if (
+        g.term_id === termId &&
+        g.class_subjects?.class_id === classId &&
+        g.class_subjects?.subject_id === subjectId
+      ) {
+        existingScores.set(g.student_id, g.score);
+      }
     }
-    classAverages.sort((a, b) => (b.average ?? -1) - (a.average ?? -1));
   }
+  const entryRoster = fullRoster
+    .filter((s) => matchesSearch(s.name))
+    .map((s) => ({ ...s, score: existingScores.get(s.id) ?? "" }));
 
   const subjectStats = new Map();
-  for (const g of allGrades ?? []) {
+  for (const g of filteredGrades) {
     const name = g.class_subjects?.subjects?.name ?? "Autre";
     const normalized = (Number(g.score) / Number(g.max_score || 20)) * 20;
     const entry = subjectStats.get(name) ?? { total: 0, count: 0 };
@@ -133,7 +149,11 @@ export default async function GradesPage({ searchParams }) {
     subjectStats.set(name, entry);
   }
 
-  const readyToEnter = Boolean(classId && classSubjectId && termId);
+  const filterSummary = [
+    selectedClass ? selectedClass.name : "Toutes les classes",
+    selectedTerm ? selectedTerm.name : "Toutes les périodes",
+    selectedSubject ? selectedSubject.name : "Toutes les matières",
+  ].join(" · ");
 
   return (
     <div className="space-y-6">
@@ -157,7 +177,13 @@ export default async function GradesPage({ searchParams }) {
         <StatCard icon={Award} label="Mentions Très Bien" value={honorsCount} accent="purple" />
       </div>
 
-      <GradeFilters classes={classes ?? []} terms={terms ?? []} subjects={subjectOptions} />
+      <GradeFilters classes={classes ?? []} terms={terms} subjects={subjects ?? []} />
+
+      {params.saved ? (
+        <Card className="border-status-good/30 bg-status-good/5">
+          <CardContent className="py-3 text-sm">Notes enregistrées.</CardContent>
+        </Card>
+      ) : null}
 
       <FormModal
         open={entryOpen}
@@ -165,12 +191,12 @@ export default async function GradesPage({ searchParams }) {
         title="Saisir des notes"
         description={
           readyToEnter
-            ? undefined
+            ? `${selectedClass?.name} · ${selectedSubject?.name} · ${selectedTerm?.name}`
             : "Choisissez une classe, une matière et une période dans les filtres ci-dessus, puis cliquez à nouveau sur «Saisir des notes»."
         }
         className="sm:max-w-xl"
         footer={
-          readyToEnter && roster.length > 0 ? (
+          readyToEnter && entryRoster.length > 0 ? (
             <>
               <ModalSubmitButton form="grades-entry-form" pendingText="Enregistrement...">
                 Enregistrer les notes
@@ -188,15 +214,17 @@ export default async function GradesPage({ searchParams }) {
       >
         {readyToEnter ? (
           <form id="grades-entry-form" action={saveGrades} className="py-2">
-            <input type="hidden" name="classSubjectId" value={classSubjectId} />
+            <FormPendingBridge />
+            <input type="hidden" name="classId" value={classId} />
+            <input type="hidden" name="subjectId" value={subjectId} />
             <input type="hidden" name="termId" value={termId} />
-            {roster.length === 0 ? (
+            {entryRoster.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
-                Aucun élève inscrit dans cette classe.
+                {fullRoster.length === 0 ? "Aucun élève inscrit dans cette classe." : "Aucun élève ne correspond à la recherche."}
               </p>
             ) : (
               <div className="space-y-2">
-                {roster.map((s) => (
+                {entryRoster.map((s) => (
                   <div key={s.id} className="flex items-center justify-between gap-3 rounded-lg border p-2.5">
                     <span className="text-sm font-medium">{s.name}</span>
                     <Input
@@ -212,6 +240,7 @@ export default async function GradesPage({ searchParams }) {
                 ))}
               </div>
             )}
+            {params.entryError ? <p className="mt-3 text-sm text-destructive">{params.entryError}</p> : null}
           </form>
         ) : null}
       </FormModal>
@@ -231,33 +260,43 @@ export default async function GradesPage({ searchParams }) {
               </CardContent>
             </Card>
           ) : (
-            <div className="overflow-x-auto rounded-2xl border bg-card">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Rang</TableHead>
-                    <TableHead>Élève</TableHead>
-                    <TableHead>Moyenne</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {classAverages.length === 0 ? (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Moyennes — {filterSummary}
+                {search ? ` · recherche « ${search} »` : ""}
+              </p>
+              <div className="overflow-x-auto rounded-2xl border bg-card">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={3} className="py-10 text-center text-muted-foreground">
-                        Aucune note saisie pour cette classe.
-                      </TableCell>
+                      <TableHead>Rang</TableHead>
+                      <TableHead>Élève</TableHead>
+                      <TableHead>Moyenne</TableHead>
                     </TableRow>
-                  ) : (
-                    classAverages.map((row, i) => (
-                      <TableRow key={row.name + i}>
-                        <TableCell>{i + 1}</TableCell>
-                        <TableCell className="font-medium">{row.name}</TableCell>
-                        <TableCell>{row.average != null ? `${row.average.toFixed(1)} / 20` : "—"}</TableCell>
+                  </TableHeader>
+                  <TableBody>
+                    {resultRows.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="py-10 text-center text-muted-foreground">
+                          {fullRoster.length === 0
+                            ? "Aucun élève inscrit dans cette classe."
+                            : search
+                              ? "Aucun élève ne correspond à la recherche."
+                              : "Aucune note saisie pour cette classe."}
+                        </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      resultRows.map((row) => (
+                        <TableRow key={row.id}>
+                          <TableCell>{row.rank ?? "—"}</TableCell>
+                          <TableCell className="font-medium">{row.name}</TableCell>
+                          <TableCell>{row.average != null ? `${row.average.toFixed(1)} / 20` : "—"}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
         </TabsContent>
@@ -274,6 +313,7 @@ export default async function GradesPage({ searchParams }) {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Moyenne par matière</CardTitle>
+              <p className="text-sm text-muted-foreground">{filterSummary}</p>
             </CardHeader>
             <CardContent>
               {subjectStats.size === 0 ? (

@@ -82,3 +82,49 @@ export async function ensureDefaultLevels(supabase, schoolId) {
     })),
   );
 }
+
+// Grades can't exist without a term (trimestre), and no screen creates them,
+// so the Notes page's "Période" filter was always empty. This returns the
+// terms of the school's current year (the flagged one, else the latest) and
+// seeds three of four months each — the year is split from its own start
+// date — the first time there are none. Seeding needs admin rights (RLS);
+// for anyone else it just returns what exists.
+export async function getTermsForCurrentYear(supabase, schoolId) {
+  const { data: years } = await supabase
+    .from("school_years")
+    .select("id, label, start_date, end_date, is_current")
+    .eq("school_id", schoolId)
+    .order("start_date", { ascending: false });
+  const year = (years ?? []).find((y) => y.is_current) ?? years?.[0];
+  if (!year) return { year: null, terms: [] };
+
+  const loadTerms = () =>
+    supabase.from("terms").select("id, name, sequence").eq("school_year_id", year.id).order("sequence");
+
+  let { data: terms } = await loadTerms();
+  if (terms?.length) return { year, terms };
+
+  const start = new Date(`${year.start_date}T00:00:00Z`);
+  const monthStart = (offset) => new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + offset, 1));
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const dayBefore = (d) => new Date(d.getTime() - 86400000);
+  const windows = [
+    { start: year.start_date, end: iso(dayBefore(monthStart(4))) },
+    { start: iso(monthStart(4)), end: iso(dayBefore(monthStart(8))) },
+    { start: iso(monthStart(8)), end: year.end_date },
+  ];
+
+  await supabase.from("terms").insert(
+    windows.map((w, i) => ({
+      school_id: schoolId,
+      school_year_id: year.id,
+      name: `Trimestre ${i + 1}`,
+      sequence: i + 1,
+      start_date: w.start,
+      end_date: w.end,
+    })),
+  );
+
+  ({ data: terms } = await loadTerms());
+  return { year, terms: terms ?? [] };
+}
