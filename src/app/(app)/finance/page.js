@@ -66,6 +66,37 @@ function fcfa(amount) {
   return `${Math.round(amount).toLocaleString("fr-FR")} FCFA`;
 }
 
+// Pinned to Dakar rather than the server's timezone, so the time shown
+// doesn't depend on where the page happens to be rendered.
+const TIME_ZONE = "Africa/Dakar";
+
+function formatDateTime(iso) {
+  return new Date(iso).toLocaleString("fr-FR", {
+    timeZone: TIME_ZONE,
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+// An expense has a user-chosen date (it can be backdated) and a separate
+// recording timestamp. The time of day only means something next to the
+// date when the expense was recorded that same day; otherwise showing the
+// recording time beside an older date would suggest it happened then.
+function formatExpenseDate(expense) {
+  const date = new Date(expense.expense_date).toLocaleDateString("fr-FR");
+  const recordedOn = new Date(expense.created_at).toLocaleDateString("en-CA", { timeZone: TIME_ZONE });
+  if (recordedOn !== expense.expense_date) return date;
+  const time = new Date(expense.created_at).toLocaleTimeString("fr-FR", {
+    timeZone: TIME_ZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${date} ${time}`;
+}
+
 export default async function FinancePage({ searchParams }) {
   const params = await searchParams;
   const membership = await getCurrentMembership();
@@ -84,27 +115,33 @@ export default async function FinancePage({ searchParams }) {
       .order("paid_at", { ascending: false }),
     supabase
       .from("students")
-      .select("id, first_name, last_name, matricule, birth_date, enrollments(classes(name))")
+      .select("id, first_name, last_name, matricule, birth_date, enrollments(status, classes(name, monthly_fee))")
       .eq("school_id", schoolId)
       .eq("status", "active")
       .order("first_name"),
     supabase
       .from("expenses")
-      .select("id, label, amount, expense_date")
+      .select("id, label, amount, expense_date, created_at")
       .eq("school_id", schoolId)
       .order("expense_date", { ascending: false }),
   ]);
 
   const isAdmin = membership.role === "school_admin";
 
-  const studentOptions = (students ?? []).map((s) => ({
-    id: s.id,
-    first_name: s.first_name,
-    last_name: s.last_name,
-    matricule: s.matricule,
-    className: s.enrollments?.[0]?.classes?.name ?? null,
-    age: calculateAge(s.birth_date),
-  }));
+  const studentOptions = (students ?? []).map((s) => {
+    // Same enrollment recordPayment() bills against: the active one.
+    const enrollment = s.enrollments?.find((e) => e.status === "active") ?? s.enrollments?.[0];
+    const monthlyFee = enrollment?.classes?.monthly_fee;
+    return {
+      id: s.id,
+      first_name: s.first_name,
+      last_name: s.last_name,
+      matricule: s.matricule,
+      className: enrollment?.classes?.name ?? null,
+      monthlyFee: monthlyFee != null ? Number(monthlyFee) : null,
+      age: calculateAge(s.birth_date),
+    };
+  });
 
   const totalDue = (invoices ?? []).reduce((sum, i) => sum + Number(i.amount_due), 0);
   const totalPaid = (payments ?? []).reduce((sum, p) => sum + Number(p.amount), 0);
@@ -212,7 +249,7 @@ export default async function FinancePage({ searchParams }) {
         <form id="new-payment-form" action={recordPayment} className="space-y-4 py-2">
           <div className="space-y-2">
             <Label>Élève</Label>
-            <StudentCombobox students={studentOptions} name="studentId" />
+            <StudentCombobox students={studentOptions} name="studentId" amountInputId="amount" />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
@@ -356,8 +393,8 @@ export default async function FinancePage({ searchParams }) {
                       <TableCell>
                         <Badge variant="secondary">{METHOD_LABELS[p.method] ?? p.method}</Badge>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(p.paid_at).toLocaleDateString("fr-FR")}
+                      <TableCell className="whitespace-nowrap text-muted-foreground">
+                        {formatDateTime(p.paid_at)}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -410,8 +447,8 @@ export default async function FinancePage({ searchParams }) {
                     <TableRow key={e.id}>
                       <TableCell className="font-medium">{e.label}</TableCell>
                       <TableCell>{fcfa(Number(e.amount))}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(e.expense_date).toLocaleDateString("fr-FR")}
+                      <TableCell className="whitespace-nowrap text-muted-foreground">
+                        {formatExpenseDate(e)}
                       </TableCell>
                       {isAdmin ? (
                         <TableCell className="text-right">

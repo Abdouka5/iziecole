@@ -9,11 +9,17 @@ import { cn } from "@/lib/utils";
 // filters the list below, selecting one fills the hidden studentId input
 // the server action reads. Each option shows classe + âge so a caissier
 // can tell same-named students apart.
-export function StudentCombobox({ students, name = "studentId" }) {
+//
+// amountInputId (optional) is the id of an uncontrolled amount <input>
+// elsewhere in the form: picking a student pre-fills it with their class's
+// monthly fee. It's an id, not a callback, because this is rendered from a
+// Server Component page, which can't pass functions down.
+export function StudentCombobox({ students, name = "studentId", amountInputId }) {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
+  const autoFilledRef = useRef("");
 
   const selected = students.find((s) => s.id === selectedId);
 
@@ -27,10 +33,26 @@ export function StudentCombobox({ students, name = "studentId" }) {
       .slice(0, 30);
   }, [students, query]);
 
+  function prefillAmount(s) {
+    const input = amountInputId ? document.getElementById(amountInputId) : null;
+    if (!input) return;
+    if (s.monthlyFee != null) {
+      const value = String(Math.round(s.monthlyFee));
+      input.value = value;
+      autoFilledRef.current = value;
+    } else if (input.value === autoFilledRef.current) {
+      // The previous student's fee would otherwise linger for a class
+      // with no fee set — but leave anything the cashier typed themselves.
+      input.value = "";
+      autoFilledRef.current = "";
+    }
+  }
+
   function selectStudent(s) {
     setSelectedId(s.id);
     setQuery(`${s.first_name} ${s.last_name}`);
     setOpen(false);
+    prefillAmount(s);
   }
 
   function handleBlur(e) {
@@ -92,6 +114,9 @@ export function StudentCombobox({ students, name = "studentId" }) {
         <p className="mt-1.5 text-xs text-muted-foreground">
           {selected.className ?? "Non affecté"}
           {selected.age != null ? ` — ${selected.age} ans` : ""}
+          {selected.monthlyFee != null
+            ? ` — Mensualité : ${selected.monthlyFee.toLocaleString("fr-FR")} FCFA`
+            : ""}
         </p>
       ) : null}
     </div>
