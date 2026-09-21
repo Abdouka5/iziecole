@@ -28,6 +28,7 @@ import {
 import { StudentFilters } from "./student-filters";
 import { DeleteStudentButton } from "./delete-student-button";
 import { GuardianFields } from "./guardian-fields";
+import { BirthDateFields } from "./birth-date-fields";
 import { createStudent, updateStudent } from "./actions";
 
 const CYCLE_LABELS = {
@@ -138,8 +139,8 @@ export default async function StudentsPage({ searchParams }) {
               <Input id="lastName" name="lastName" required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="birthDate">Date de naissance</Label>
-              <Input id="birthDate" name="birthDate" type="date" />
+              <Label>Date de naissance</Label>
+              <BirthDateFields />
             </div>
             <div className="space-y-2">
               <Label htmlFor="birthPlace">Lieu de naissance</Label>
@@ -216,8 +217,8 @@ export default async function StudentsPage({ searchParams }) {
                 <Input id="editLastName" name="lastName" defaultValue={editingStudent.last_name} required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="editBirthDate">Date de naissance</Label>
-                <Input id="editBirthDate" name="birthDate" type="date" defaultValue={editingStudent.birth_date ?? ""} />
+                <Label>Date de naissance</Label>
+                <BirthDateFields defaultValue={editingStudent.birth_date ?? ""} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="editBirthPlace">Lieu de naissance</Label>

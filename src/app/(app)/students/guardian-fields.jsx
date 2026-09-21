@@ -13,11 +13,76 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const RELATIONSHIPS = ["Père", "Mère", "Tuteur", "Tutrice", "Autre"];
+const RELATIONSHIPS = ["Père", "Mère", "Tuteur", "Tutrice", "Frère", "Sœur", "Autre"];
+const OTHER = "Autre";
 
-// Each row posts guardian_name_<key>, guardian_phone_<key>,
-// guardian_relationship_<key> — the server action just scans formData for
-// that prefix, so the keys only need to be unique, not sequential.
+// One guardian. Posts guardian_name_<key>, guardian_phone_<key>,
+// guardian_relationship_<key> — the relationship goes out through a hidden
+// input (not the Select's own name) so that picking "Autre" can send the
+// free text the user typed instead of the literal word "Autre".
+function GuardianRow({ rowKey, canRemove, onRemove }) {
+  const [relationship, setRelationship] = useState("");
+  const [custom, setCustom] = useState("");
+  const isOther = relationship === OTHER;
+  const submittedRelationship = isOther ? custom.trim() || OTHER : relationship;
+
+  return (
+    <div className="grid gap-3 rounded-lg border p-3 sm:grid-cols-[1fr_1fr_150px_auto]">
+      <div className="space-y-1.5">
+        <Label htmlFor={`guardian-name-${rowKey}`}>Nom complet</Label>
+        <Input id={`guardian-name-${rowKey}`} name={`guardian_name_${rowKey}`} placeholder="Nom du parent/responsable" />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor={`guardian-phone-${rowKey}`}>Téléphone</Label>
+        <Input id={`guardian-phone-${rowKey}`} name={`guardian_phone_${rowKey}`} type="tel" placeholder="+221 77 123 45 67" />
+      </div>
+      <div className="space-y-1.5">
+        <Label>Responsabilité</Label>
+        <Select value={relationship} onValueChange={setRelationship}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Choisir" />
+          </SelectTrigger>
+          <SelectContent>
+            {RELATIONSHIPS.map((r) => (
+              <SelectItem key={r} value={r}>
+                {r}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <input type="hidden" name={`guardian_relationship_${rowKey}`} value={submittedRelationship} />
+      </div>
+      <div className="flex items-end">
+        {canRemove ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={onRemove}
+            aria-label="Retirer ce parent/responsable"
+            className="text-muted-foreground hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        ) : null}
+      </div>
+      {isOther ? (
+        <div className="space-y-1.5 sm:col-span-4">
+          <Label htmlFor={`guardian-custom-${rowKey}`}>Précisez le lien avec l&apos;élève</Label>
+          <Input
+            id={`guardian-custom-${rowKey}`}
+            value={custom}
+            onChange={(e) => setCustom(e.target.value)}
+            placeholder="Ex. Oncle, Tante, Grand-mère…"
+          />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// The keys only need to be unique, not sequential — the server action just
+// scans formData for the guardian_* prefix.
 export function GuardianFields({ initialCount = 1 }) {
   const baseId = useId();
   const [rows, setRows] = useState(
@@ -34,46 +99,8 @@ export function GuardianFields({ initialCount = 1 }) {
 
   return (
     <div className="space-y-3">
-      {rows.map((key, index) => (
-        <div key={key} className="grid gap-3 rounded-lg border p-3 sm:grid-cols-[1fr_1fr_140px_auto]">
-          <div className="space-y-1.5">
-            <Label htmlFor={`guardian-name-${key}`}>Nom complet</Label>
-            <Input id={`guardian-name-${key}`} name={`guardian_name_${key}`} placeholder="Nom du parent/responsable" />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor={`guardian-phone-${key}`}>Téléphone</Label>
-            <Input id={`guardian-phone-${key}`} name={`guardian_phone_${key}`} type="tel" placeholder="+221 77 123 45 67" />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Responsabilité</Label>
-            <Select name={`guardian_relationship_${key}`}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choisir" />
-              </SelectTrigger>
-              <SelectContent>
-                {RELATIONSHIPS.map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {r}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-end">
-            {rows.length > 1 ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => removeRow(key)}
-                aria-label="Retirer ce parent/responsable"
-                className="text-muted-foreground hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            ) : null}
-          </div>
-        </div>
+      {rows.map((key) => (
+        <GuardianRow key={key} rowKey={key} canRemove={rows.length > 1} onRemove={() => removeRow(key)} />
       ))}
       <Button type="button" variant="outline" size="sm" onClick={addRow}>
         <Plus className="mr-1.5 h-4 w-4" />
