@@ -41,7 +41,8 @@ import { GroupedBarChart } from "@/components/charts/grouped-bar-chart";
 import { DonutChart } from "@/components/charts/donut-chart";
 import { StudentCombobox } from "./student-combobox";
 import { ExportReportButton } from "./export-report-button";
-import { recordPayment, createExpense, deleteExpense, deletePayment } from "./actions";
+import { recordPayment, createExpense, deleteExpense } from "./actions";
+import { DeletePaymentButton } from "./delete-payment-button";
 
 const MONTH_LABELS = [
   "Jan.", "Fév.", "Mars", "Avr.", "Mai", "Juin",
@@ -371,25 +372,10 @@ export default async function FinancePage({ searchParams }) {
                             </Link>
                           </Button>
                           {isAdmin ? (
-                            <form
-                              action={deletePayment}
-                              onSubmit={(e) => {
-                                if (!confirm("Supprimer ce paiement ? Cette action est irréversible.")) {
-                                  e.preventDefault();
-                                }
-                              }}
-                            >
-                              <input type="hidden" name="paymentId" value={p.id} />
-                              <Button
-                                type="submit"
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive hover:text-destructive"
-                                aria-label="Supprimer le paiement"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </form>
+                            <DeletePaymentButton
+                              paymentId={p.id}
+                              studentName={[p.students?.first_name, p.students?.last_name].filter(Boolean).join(" ")}
+                            />
                           ) : null}
                         </div>
                       </TableCell>
