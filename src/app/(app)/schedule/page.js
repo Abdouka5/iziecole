@@ -3,8 +3,10 @@ import { GraduationCap, BookOpen, User, Clock, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMembership } from "@/lib/school-context";
 import { PageHeader } from "@/components/layout/page-header";
+import { FormModal } from "@/components/layout/form-modal";
 import { StatCard, ACCENTS } from "@/components/layout/stat-card";
 import { Button } from "@/components/ui/button";
+import { ModalSubmitButton } from "@/components/ui/modal-submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -14,13 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -33,7 +29,8 @@ import { ScheduleControls } from "./schedule-controls";
 import { DeleteSlotButton } from "./delete-slot-button";
 import { createSlot } from "./actions";
 
-const DAY_LABELS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"];
+// Index = timetable_slots.day_of_week (0 = lundi … 6 = dimanche).
+const DAY_LABELS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 const HOURS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];
 const ACCENT_KEYS = ["blue", "green", "purple", "amber", "pink"];
 
@@ -55,30 +52,22 @@ export default async function SchedulePage({ searchParams }) {
   const classId = params.classId;
   const view = params.view ?? "week";
 
-  const [{ data: classes }, { data: currentYear }, { data: rooms }] = await Promise.all([
+  const [{ data: classes }, { data: currentYear }, { data: subjects }] = await Promise.all([
     supabase.from("classes").select("id, name").eq("school_id", schoolId).order("name"),
     supabase.from("school_years").select("id, label").eq("school_id", schoolId).eq("is_current", true).maybeSingle(),
-    supabase.from("rooms").select("id, name").eq("school_id", schoolId).order("name"),
+    supabase.from("subjects").select("id, name").eq("school_id", schoolId).order("name"),
   ]);
 
   const selectedClass = (classes ?? []).find((c) => c.id === classId);
 
   let slots = [];
-  let classSubjects = [];
   if (classId) {
-    const [{ data: slotsData }, { data: classSubjectsData }] = await Promise.all([
-      supabase
-        .from("timetable_slots")
-        .select("id, day_of_week, start_time, end_time, subjects(name), profiles(full_name), rooms(name)")
-        .eq("class_id", classId)
-        .order("start_time"),
-      supabase
-        .from("class_subjects")
-        .select("id, subjects(name), profiles(full_name)")
-        .eq("class_id", classId),
-    ]);
+    const { data: slotsData } = await supabase
+      .from("timetable_slots")
+      .select("id, day_of_week, start_time, end_time, subjects(name), profiles(full_name)")
+      .eq("class_id", classId)
+      .order("start_time");
     slots = slotsData ?? [];
-    classSubjects = classSubjectsData ?? [];
   }
 
   const teacherCount = new Set(slots.map((s) => s.profiles?.full_name).filter(Boolean)).size;
@@ -125,99 +114,88 @@ export default async function SchedulePage({ searchParams }) {
             <StatCard icon={Clock} label="Amplitude horaire" value={span} accent="amber" />
           </div>
 
-          {params.new ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Ajouter un cours</CardTitle>
-                <CardDescription>
-                  {currentYear
-                    ? `Sur l'emploi du temps de ${selectedClass?.name}.`
-                    : "Aucune année scolaire configurée — configurez-en une dans Paramètres avant d'ajouter un cours."}
-                </CardDescription>
-              </CardHeader>
-              {currentYear ? (
-                <CardContent>
-                  <form action={createSlot} className="grid gap-4 sm:grid-cols-2">
-                    <input type="hidden" name="classId" value={classId} />
-                    <input type="hidden" name="schoolYearId" value={currentYear.id} />
-                    <div className="space-y-2">
-                      <Label>Matière (enseignant)</Label>
-                      <Select name="classSubjectId" required>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {classSubjects.map((cs) => (
-                            <SelectItem key={cs.id} value={cs.id}>
-                              {cs.subjects?.name} — {cs.profiles?.full_name ?? "Sans enseignant"}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Jour</Label>
-                      <Select name="dayOfWeek" required>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {DAY_LABELS.map((d, i) => (
-                            <SelectItem key={d} value={String(i)}>
-                              {d}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Heure de début</Label>
-                      <Input type="time" name="startTime" required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Heure de fin</Label>
-                      <Input type="time" name="endTime" required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Salle</Label>
-                      <Select name="roomId">
-                        <SelectTrigger>
-                          <SelectValue placeholder="Aucune" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(rooms ?? []).map((r) => (
-                            <SelectItem key={r.id} value={r.id}>
-                              {r.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {params.error ? (
-                      <p className="text-sm text-destructive sm:col-span-2">{params.error}</p>
-                    ) : null}
-                    <div className="flex gap-2 sm:col-span-2">
-                      <Button type="submit" disabled={classSubjects.length === 0}>
-                        Ajouter
-                      </Button>
-                      <Button variant="outline" asChild>
-                        <Link href={`/schedule?classId=${classId}`}>Annuler</Link>
-                      </Button>
-                    </div>
-                    {classSubjects.length === 0 ? (
-                      <p className="text-sm text-muted-foreground sm:col-span-2">
-                        Aucune matière assignée à cette classe pour le moment.
-                      </p>
-                    ) : null}
-                  </form>
-                </CardContent>
-              ) : null}
-            </Card>
-          ) : null}
+          <FormModal
+            open={Boolean(params.new)}
+            closeHref={`/schedule?classId=${classId}`}
+            title="Ajouter un cours"
+            description={
+              !currentYear
+                ? "Aucune année scolaire configurée — configurez-en une dans Paramètres avant d'ajouter un cours."
+                : !(subjects ?? []).length
+                  ? "Aucune matière configurée — ajoutez-en dans Paramètres."
+                  : `Sur l'emploi du temps de ${selectedClass?.name}.`
+            }
+            footer={
+              currentYear && (subjects ?? []).length ? (
+                <>
+                  <ModalSubmitButton form="new-slot-form" pendingText="Ajout...">
+                    Ajouter
+                  </ModalSubmitButton>
+                  <Button variant="outline" asChild>
+                    <Link href={`/schedule?classId=${classId}`}>Annuler</Link>
+                  </Button>
+                </>
+              ) : (
+                <Button variant="outline" asChild>
+                  <Link href={currentYear ? "/settings?section=subjects" : "/settings?section=year"}>
+                    Aller dans Paramètres
+                  </Link>
+                </Button>
+              )
+            }
+          >
+            {currentYear && (subjects ?? []).length ? (
+              <form id="new-slot-form" action={createSlot} className="space-y-4 py-2">
+                <input type="hidden" name="classId" value={classId} />
+                <input type="hidden" name="schoolYearId" value={currentYear.id} />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Matière</Label>
+                    <Select name="subjectId" required>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Sélectionner" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subjects.map((subject) => (
+                          <SelectItem key={subject.id} value={subject.id}>
+                            {subject.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Jour</Label>
+                    <Select name="dayOfWeek" required>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Sélectionner" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DAY_LABELS.map((d, i) => (
+                          <SelectItem key={d} value={String(i)}>
+                            {d}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="startTime">Heure de début</Label>
+                    <Input id="startTime" type="time" name="startTime" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="endTime">Heure de fin</Label>
+                    <Input id="endTime" type="time" name="endTime" required />
+                  </div>
+                </div>
+                {params.error ? <p className="text-sm text-destructive">{params.error}</p> : null}
+              </form>
+            ) : null}
+          </FormModal>
 
           {view === "week" ? (
             <div className="overflow-x-auto rounded-2xl border bg-card">
-              <table className="w-full min-w-[720px] border-collapse text-sm">
+              <table className="w-full min-w-[960px] border-collapse text-sm">
                 <thead>
                   <tr className="border-b">
                     <th className="w-20 p-3 text-left font-medium text-muted-foreground">Heure</th>
@@ -248,10 +226,7 @@ export default async function SchedulePage({ searchParams }) {
                                 >
                                   <div>
                                     <p className="font-semibold">{s.subjects?.name}</p>
-                                    <p className="opacity-80">
-                                      {s.profiles?.full_name ?? "—"}
-                                      {s.rooms?.name ? ` | ${s.rooms.name}` : ""}
-                                    </p>
+                                    {s.profiles?.full_name ? <p className="opacity-80">{s.profiles.full_name}</p> : null}
                                   </div>
                                   <DeleteSlotButton slotId={s.id} />
                                 </div>
@@ -274,14 +249,13 @@ export default async function SchedulePage({ searchParams }) {
                     <TableHead>Horaire</TableHead>
                     <TableHead>Matière</TableHead>
                     <TableHead>Enseignant</TableHead>
-                    <TableHead>Salle</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {slots.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                      <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
                         Aucun cours pour cette classe.
                       </TableCell>
                     </TableRow>
@@ -294,7 +268,6 @@ export default async function SchedulePage({ searchParams }) {
                           <TableCell>{formatTime(s.start_time)} - {formatTime(s.end_time)}</TableCell>
                           <TableCell className="font-medium">{s.subjects?.name}</TableCell>
                           <TableCell className="text-muted-foreground">{s.profiles?.full_name ?? "—"}</TableCell>
-                          <TableCell className="text-muted-foreground">{s.rooms?.name ?? "—"}</TableCell>
                           <TableCell className="text-right">
                             <DeleteSlotButton slotId={s.id} />
                           </TableCell>
