@@ -12,11 +12,15 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMembership } from "@/lib/school-context";
 import { calculateAge } from "@/lib/time";
+import { describePeriod, filterByPeriod } from "@/lib/period-filter";
+import { METHOD_LABELS } from "@/lib/payment-methods";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/layout/stat-card";
+import { PeriodFilter } from "@/components/layout/period-filter";
 import { FormModal } from "@/components/layout/form-modal";
 import { Button } from "@/components/ui/button";
 import { ModalSubmitButton } from "@/components/ui/modal-submit-button";
+import { FormPendingBridge } from "@/components/ui/form-pending-bridge";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,14 +52,6 @@ const MONTH_LABELS = [
   "Jan.", "Fév.", "Mars", "Avr.", "Mai", "Juin",
   "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc.",
 ];
-
-const METHOD_LABELS = {
-  especes: "Espèces",
-  wave: "Wave",
-  orange_money: "Orange Money",
-  cheque: "Chèque",
-  virement: "Virement",
-};
 
 function lastNMonthStarts(n) {
   const now = new Date();
@@ -143,9 +139,17 @@ export default async function FinancePage({ searchParams }) {
     };
   });
 
-  const totalDue = (invoices ?? []).reduce((sum, i) => sum + Number(i.amount_due), 0);
-  const totalPaid = (payments ?? []).reduce((sum, p) => sum + Number(p.amount), 0);
-  const totalExpenses = (expenses ?? []).reduce((sum, e) => sum + Number(e.amount), 0);
+  // The Date / Personnalisé filter at the top narrows the transactions (cards,
+  // both tables, payment-method split, exports). The 6-month chart and the
+  // invoice-based tabs stay period-independent.
+  const periodFilter = { period: params.period ?? "all", from: params.from, to: params.to };
+  const isFiltered = periodFilter.period !== "all";
+  const periodLabel = describePeriod(periodFilter.period, periodFilter.from, periodFilter.to);
+  const periodPayments = filterByPeriod(payments ?? [], (p) => p.paid_at, periodFilter);
+  const periodExpenses = filterByPeriod(expenses ?? [], (e) => e.expense_date, periodFilter);
+
+  const totalPaid = periodPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+  const totalExpenses = periodExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
   const balance = totalPaid - totalExpenses;
 
   const months = lastNMonthStarts(6);
@@ -166,7 +170,7 @@ export default async function FinancePage({ searchParams }) {
   };
 
   const methodTotals = {};
-  for (const p of payments ?? []) {
+  for (const p of periodPayments) {
     methodTotals[p.method] = (methodTotals[p.method] ?? 0) + Number(p.amount);
   }
   const methodEntries = Object.entries(methodTotals);
@@ -192,14 +196,6 @@ export default async function FinancePage({ searchParams }) {
     classTotals.set(className, entry);
   }
 
-  const paymentRows = (payments ?? []).map((p) => ({
-    studentName: `${p.students?.first_name ?? ""} ${p.students?.last_name ?? ""}`.trim(),
-    matricule: p.students?.matricule ?? "",
-    methodLabel: METHOD_LABELS[p.method] ?? p.method,
-    dateLabel: new Date(p.paid_at).toLocaleDateString("fr-FR"),
-    amount: Number(p.amount),
-  }));
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -219,10 +215,18 @@ export default async function FinancePage({ searchParams }) {
                 Ajouter une dépense
               </Link>
             </Button>
-            <ExportReportButton payments={paymentRows} />
+            <ExportReportButton periodLabel={periodLabel} />
           </>
         }
       />
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <PeriodFilter />
+        <p className="text-sm text-muted-foreground">
+          {periodLabel} · {periodPayments.length} recette{periodPayments.length > 1 ? "s" : ""} ·{" "}
+          {periodExpenses.length} dépense{periodExpenses.length > 1 ? "s" : ""}
+        </p>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard icon={PiggyBank} label="Montant encaissé" value={fcfa(totalPaid)} accent="green" />
@@ -247,6 +251,7 @@ export default async function FinancePage({ searchParams }) {
         }
       >
         <form id="new-payment-form" action={recordPayment} className="space-y-4 py-2">
+          <FormPendingBridge />
           <div className="space-y-2">
             <Label>Élève</Label>
             <StudentCombobox students={studentOptions} name="studentId" amountInputId="amount" />
@@ -331,6 +336,7 @@ export default async function FinancePage({ searchParams }) {
         }
       >
         <form id="new-expense-form" action={createExpense} className="space-y-4 py-2">
+          <FormPendingBridge />
           <div className="space-y-2">
             <Label htmlFor="label">Libellé</Label>
             <Input id="label" name="label" placeholder="Achat fournitures" required />
@@ -377,14 +383,14 @@ export default async function FinancePage({ searchParams }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(payments ?? []).length === 0 ? (
+                {periodPayments.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
                       Aucune transaction pour le moment.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  payments.slice(0, 20).map((p) => (
+                  periodPayments.slice(0, isFiltered ? 200 : 20).map((p) => (
                     <TableRow key={p.id}>
                       <TableCell className="font-medium">
                         {p.students?.first_name} {p.students?.last_name}
@@ -436,14 +442,14 @@ export default async function FinancePage({ searchParams }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(expenses ?? []).length === 0 ? (
+                {periodExpenses.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={isAdmin ? 4 : 3} className="py-10 text-center text-muted-foreground">
                       Aucune dépense enregistrée pour le moment.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  expenses.map((e) => (
+                  periodExpenses.map((e) => (
                     <TableRow key={e.id}>
                       <TableCell className="font-medium">{e.label}</TableCell>
                       <TableCell>{fcfa(Number(e.amount))}</TableCell>

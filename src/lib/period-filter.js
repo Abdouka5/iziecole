@@ -59,3 +59,28 @@ export function inPeriod(dateValue, { start, end }) {
   if (end && d > end) return false;
   return true;
 }
+
+// Human label for the current ?period=/?from=/?to= — used in page subtitles,
+// report headers and file names.
+export function describePeriod(periodKey, customFrom, customTo) {
+  if (periodKey === "custom") {
+    const fmt = (d) => new Date(`${d}T00:00:00`).toLocaleDateString("fr-FR");
+    if (customFrom && customTo) return `du ${fmt(customFrom)} au ${fmt(customTo)}`;
+    if (customFrom) return `depuis le ${fmt(customFrom)}`;
+    if (customTo) return `jusqu'au ${fmt(customTo)}`;
+    return "Toutes les périodes";
+  }
+  if (!periodKey || periodKey === "all") return "Toutes les périodes";
+  return PERIOD_OPTIONS.find((o) => o.value === periodKey)?.label ?? "Toutes les périodes";
+}
+
+// Keeps the rows whose date falls inside the selected period. "all" (or no
+// period) keeps everything, including rows dated in the future — inPeriod()
+// alone would drop those since the "all" range ends now. Unlike the admin
+// pages' `if (range.start)` check, this also honours a custom range that
+// only has an end date.
+export function filterByPeriod(rows, dateOf, { period, from, to }) {
+  if (!period || period === "all") return rows;
+  const range = getPeriodRange(period, from, to);
+  return rows.filter((row) => inPeriod(dateOf(row), range));
+}
