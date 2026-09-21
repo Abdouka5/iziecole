@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Printer, List, LayoutGrid } from "lucide-react";
+import { List, LayoutGrid } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -10,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function ScheduleControls({ classes }) {
@@ -68,11 +67,6 @@ export function ScheduleControls({ classes }) {
           Liste
         </button>
       </div>
-
-      <Button variant="outline" onClick={() => window.print()}>
-        <Printer className="mr-1.5 h-4 w-4" />
-        Imprimer
-      </Button>
     </div>
   );
 }
