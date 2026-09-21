@@ -7,6 +7,7 @@ import { StatCard } from "@/components/layout/stat-card";
 import { FormModal } from "@/components/layout/form-modal";
 import { Button } from "@/components/ui/button";
 import { ModalSubmitButton } from "@/components/ui/modal-submit-button";
+import { FormPendingBridge } from "@/components/ui/form-pending-bridge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -129,6 +130,7 @@ export default async function StudentsPage({ searchParams }) {
         }
       >
         <form id="new-student-form" action={createStudent} className="space-y-5 py-2">
+          <FormPendingBridge />
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="firstName">Prénom</Label>
@@ -206,6 +208,7 @@ export default async function StudentsPage({ searchParams }) {
           }
         >
           <form id="edit-student-form" action={updateStudent} className="space-y-5 py-2">
+            <FormPendingBridge />
             <input type="hidden" name="studentId" value={editingStudent.id} />
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">

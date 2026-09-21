@@ -7,6 +7,7 @@ import { StatCard } from "@/components/layout/stat-card";
 import { FormModal } from "@/components/layout/form-modal";
 import { Button } from "@/components/ui/button";
 import { ModalSubmitButton } from "@/components/ui/modal-submit-button";
+import { FormPendingBridge } from "@/components/ui/form-pending-bridge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -145,6 +146,7 @@ export default async function ClassesPage({ searchParams }) {
       >
         {currentYear && (levels ?? []).length ? (
           <form id="new-class-form" className="space-y-4 py-2" action={createClass}>
+            <FormPendingBridge />
             <input type="hidden" name="schoolYearId" value={currentYear.id} />
             <div className="space-y-2">
               <Label htmlFor="className">Nom de la classe</Label>
@@ -196,6 +198,7 @@ export default async function ClassesPage({ searchParams }) {
           }
         >
           <form id="edit-class-form" className="space-y-4 py-2" action={updateClass}>
+            <FormPendingBridge />
             <input type="hidden" name="classId" value={editingClass.id} />
             <div className="space-y-2">
               <Label htmlFor="editClassName">Nom de la classe</Label>

@@ -3,6 +3,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { ModalSubmitButton } from "@/components/ui/modal-submit-button";
+import { FormPendingBridge } from "@/components/ui/form-pending-bridge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -53,6 +54,7 @@ export default async function AdminContentPage({ searchParams }) {
         }
       >
         <form id="new-announcement-form" action={createPlatformAnnouncement} className="space-y-4 py-2">
+          <FormPendingBridge />
           <div className="space-y-2">
             <Label htmlFor="title">Titre</Label>
             <Input id="title" name="title" placeholder="Maintenance prévue le 20 septembre" required />

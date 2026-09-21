@@ -7,6 +7,7 @@ import { StatCard } from "@/components/layout/stat-card";
 import { FormModal } from "@/components/layout/form-modal";
 import { Button } from "@/components/ui/button";
 import { ModalSubmitButton } from "@/components/ui/modal-submit-button";
+import { FormPendingBridge } from "@/components/ui/form-pending-bridge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -101,6 +102,7 @@ export default async function PersonnelPage({ searchParams }) {
           }
         >
           <form id="new-staff-form" action={addStaffMember} className="grid gap-4 py-2 sm:grid-cols-2">
+            <FormPendingBridge />
             <div className="space-y-2">
               <Label htmlFor="fullName">Nom complet</Label>
               <Input id="fullName" name="fullName" required />
@@ -147,6 +149,7 @@ export default async function PersonnelPage({ searchParams }) {
           }
         >
           <form id="edit-staff-form" action={updateStaffMember} className="grid gap-4 py-2 sm:grid-cols-2">
+            <FormPendingBridge />
             <input type="hidden" name="staffId" value={editingStaff.id} />
             <div className="space-y-2">
               <Label htmlFor="editFullName">Nom complet</Label>

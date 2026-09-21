@@ -6,6 +6,7 @@ import { getPeriodRange, inPeriod } from "@/lib/period-filter";
 import { PeriodFilter } from "@/components/layout/period-filter";
 import { Button } from "@/components/ui/button";
 import { ModalSubmitButton } from "@/components/ui/modal-submit-button";
+import { FormPendingBridge } from "@/components/ui/form-pending-bridge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -80,6 +81,7 @@ export default async function AdminSchoolsPage({ searchParams }) {
         }
       >
         <form id="new-school-form" action={createSchool} className="space-y-4 py-2">
+          <FormPendingBridge />
           <div className="space-y-2">
             <Label htmlFor="schoolName">Nom de l&apos;établissement</Label>
             <Input id="schoolName" name="schoolName" required />
