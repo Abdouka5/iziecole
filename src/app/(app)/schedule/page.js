@@ -31,10 +31,6 @@ import { createSlot } from "./actions";
 
 // Index = timetable_slots.day_of_week (0 = lundi … 6 = dimanche).
 const DAY_LABELS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
-// The grid always shows the usual school day, and stretches to cover any
-// course that starts earlier or later (an evening class must not vanish).
-const DEFAULT_FIRST_HOUR = 8;
-const DEFAULT_LAST_HOUR = 16;
 const ACCENT_KEYS = ["blue", "green", "purple", "amber", "pink"];
 
 function hashToAccent(name) {
@@ -73,10 +69,12 @@ export default async function SchedulePage({ searchParams }) {
     slots = slotsData ?? [];
   }
 
-  const startHours = slots.map((s) => Number(formatTime(s.start_time).slice(0, 2)));
-  const firstHour = Math.min(DEFAULT_FIRST_HOUR, ...startHours);
-  const lastHour = Math.max(DEFAULT_LAST_HOUR, ...startHours);
-  const HOURS = Array.from({ length: lastHour - firstHour + 1 }, (_, i) => `${String(firstHour + i).padStart(2, "0")}:00`);
+  // Courses grouped per day, in chronological order.
+  const slotsByDay = DAY_LABELS.map((_, dayIndex) =>
+    slots
+      .filter((s) => s.day_of_week === dayIndex)
+      .sort((a, b) => a.start_time.localeCompare(b.start_time) || a.end_time.localeCompare(b.end_time)),
+  );
 
   const teacherCount = new Set(slots.map((s) => s.profiles?.full_name).filter(Boolean)).size;
   const startTimes = slots.map((s) => s.start_time).sort();
@@ -203,10 +201,9 @@ export default async function SchedulePage({ searchParams }) {
 
           {view === "week" ? (
             <div className="overflow-x-auto rounded-2xl border bg-card">
-              <table className="w-full min-w-[960px] border-collapse text-sm">
+              <table className="w-full min-w-[840px] table-fixed border-collapse text-sm">
                 <thead>
                   <tr className="border-b">
-                    <th className="w-20 p-3 text-left font-medium text-muted-foreground">Heure</th>
                     {DAY_LABELS.map((d) => (
                       <th key={d} className="p-3 text-left font-medium text-muted-foreground">
                         {d}
@@ -215,39 +212,35 @@ export default async function SchedulePage({ searchParams }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {HOURS.map((hour) => (
-                    <tr key={hour} className="border-b last:border-0">
-                      <td className="p-3 align-top text-xs text-muted-foreground">{hour}</td>
-                      {DAY_LABELS.map((_, dayIndex) => {
-                        const cellSlots = slots.filter(
-                          (s) => s.day_of_week === dayIndex && formatTime(s.start_time).slice(0, 2) === hour.slice(0, 2),
-                        );
-                        return (
-                          <td key={dayIndex} className="p-2 align-top">
-                            {cellSlots.map((s) => {
-                              const { bg, fg } = ACCENTS[hashToAccent(s.subjects?.name ?? "")];
-                              return (
-                                <div
-                                  key={s.id}
-                                  className="mb-1 flex items-start justify-between gap-1 rounded-lg p-2 text-xs"
-                                  style={{ backgroundColor: bg, color: fg }}
-                                >
-                                  <div>
-                                    <p className="font-semibold">{s.subjects?.name}</p>
-                                    <p className="opacity-80">
-                                      {formatTime(s.start_time)} - {formatTime(s.end_time)}
-                                    </p>
-                                    {s.profiles?.full_name ? <p className="opacity-80">{s.profiles.full_name}</p> : null}
-                                  </div>
-                                  <DeleteSlotButton slotId={s.id} />
+                  <tr>
+                    {slotsByDay.map((daySlots, dayIndex) => (
+                      <td key={dayIndex} className="p-2 align-top">
+                        {daySlots.length === 0 ? (
+                          <p className="px-2 py-1 text-xs text-muted-foreground">—</p>
+                        ) : (
+                          daySlots.map((s) => {
+                            const { bg, fg } = ACCENTS[hashToAccent(s.subjects?.name ?? "")];
+                            return (
+                              <div
+                                key={s.id}
+                                className="mb-1.5 flex items-start justify-between gap-1 rounded-lg p-2 text-xs"
+                                style={{ backgroundColor: bg, color: fg }}
+                              >
+                                <div className="min-w-0">
+                                  <p className="font-semibold">{s.subjects?.name}</p>
+                                  {s.profiles?.full_name ? <p className="opacity-80">{s.profiles.full_name}</p> : null}
+                                  <p className="opacity-80">
+                                    {formatTime(s.start_time)} - {formatTime(s.end_time)}
+                                  </p>
                                 </div>
-                              );
-                            })}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
+                                <DeleteSlotButton slotId={s.id} />
+                              </div>
+                            );
+                          })
+                        )}
+                      </td>
+                    ))}
+                  </tr>
                 </tbody>
               </table>
             </div>
