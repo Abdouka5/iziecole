@@ -31,7 +31,10 @@ import { createSlot } from "./actions";
 
 // Index = timetable_slots.day_of_week (0 = lundi … 6 = dimanche).
 const DAY_LABELS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
-const HOURS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];
+// The grid always shows the usual school day, and stretches to cover any
+// course that starts earlier or later (an evening class must not vanish).
+const DEFAULT_FIRST_HOUR = 8;
+const DEFAULT_LAST_HOUR = 16;
 const ACCENT_KEYS = ["blue", "green", "purple", "amber", "pink"];
 
 function hashToAccent(name) {
@@ -69,6 +72,11 @@ export default async function SchedulePage({ searchParams }) {
       .order("start_time");
     slots = slotsData ?? [];
   }
+
+  const startHours = slots.map((s) => Number(formatTime(s.start_time).slice(0, 2)));
+  const firstHour = Math.min(DEFAULT_FIRST_HOUR, ...startHours);
+  const lastHour = Math.max(DEFAULT_LAST_HOUR, ...startHours);
+  const HOURS = Array.from({ length: lastHour - firstHour + 1 }, (_, i) => `${String(firstHour + i).padStart(2, "0")}:00`);
 
   const teacherCount = new Set(slots.map((s) => s.profiles?.full_name).filter(Boolean)).size;
   const startTimes = slots.map((s) => s.start_time).sort();
@@ -212,7 +220,7 @@ export default async function SchedulePage({ searchParams }) {
                       <td className="p-3 align-top text-xs text-muted-foreground">{hour}</td>
                       {DAY_LABELS.map((_, dayIndex) => {
                         const cellSlots = slots.filter(
-                          (s) => s.day_of_week === dayIndex && formatTime(s.start_time) === hour,
+                          (s) => s.day_of_week === dayIndex && formatTime(s.start_time).slice(0, 2) === hour.slice(0, 2),
                         );
                         return (
                           <td key={dayIndex} className="p-2 align-top">
@@ -226,6 +234,9 @@ export default async function SchedulePage({ searchParams }) {
                                 >
                                   <div>
                                     <p className="font-semibold">{s.subjects?.name}</p>
+                                    <p className="opacity-80">
+                                      {formatTime(s.start_time)} - {formatTime(s.end_time)}
+                                    </p>
                                     {s.profiles?.full_name ? <p className="opacity-80">{s.profiles.full_name}</p> : null}
                                   </div>
                                   <DeleteSlotButton slotId={s.id} />
