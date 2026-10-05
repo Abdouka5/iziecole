@@ -32,15 +32,20 @@ export default async function AppLayout({ children }) {
   let blocked = false;
   let neverPaid = false;
   let subscriptionPrice, subscriptionDurationDays;
-  if (membership.role !== "super_admin" && !isExemptPage) {
+  let daysRemaining = null;
+  if (membership.role !== "super_admin") {
+    // Computed even on /settings and /support (isExemptPage) — those pages
+    // stay reachable when expired, but the header's "expires soon" notice
+    // still needs this everywhere, not just on the pages it blocks.
     const [status, platformSettings] = await Promise.all([
       getSubscriptionStatus(supabase, membership.school.id),
       getPlatformSettings(supabase),
     ]);
-    blocked = !status.active;
+    blocked = !status.active && !isExemptPage;
     neverPaid = Boolean(status.neverPaid);
     subscriptionPrice = platformSettings.subscriptionPrice;
     subscriptionDurationDays = platformSettings.subscriptionDurationDays;
+    if (status.active) daysRemaining = status.daysRemaining;
   }
 
   const needsSetup =
@@ -57,7 +62,12 @@ export default async function AppLayout({ children }) {
         <div className="print:hidden">
           {latestAnnouncement ? <PlatformAnnouncementBanner announcement={latestAnnouncement} /> : null}
           {needsSetup ? <SetupBanner /> : null}
-          <Header role={membership.role} fullName={membership.fullName} />
+          <Header
+            role={membership.role}
+            fullName={membership.fullName}
+            schoolId={membership.school?.id}
+            daysRemaining={daysRemaining}
+          />
         </div>
         <main className="flex-1 overflow-y-auto bg-secondary/30 p-4 sm:p-6 print:overflow-visible print:bg-white print:p-0">
           {blocked ? (

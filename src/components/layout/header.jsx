@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Search, User, GraduationCap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { MobileNav } from "./mobile-nav";
+import { SubscriptionNotice } from "./subscription-notice";
 import { searchSchool } from "@/app/(app)/search-actions";
 
 const SEARCH_PLACEHOLDER_BY_PATH = {
@@ -26,7 +27,7 @@ function useNow() {
   return now;
 }
 
-export function Header({ role, fullName }) {
+export function Header({ role, fullName, schoolId, daysRemaining }) {
   const router = useRouter();
   const pathname = usePathname();
   const now = useNow();
@@ -70,66 +71,70 @@ export function Header({ role, fullName }) {
     : "";
 
   return (
-    <header className="flex h-16 items-center justify-between gap-4 border-b bg-card px-4 sm:px-6">
+    <header className="flex h-16 items-center gap-4 border-b bg-card px-4 sm:px-6">
       <MobileNav role={role} fullName={fullName} />
 
-      <div ref={boxRef} className="relative w-full max-w-md">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={searchPlaceholder}
-          className="h-9 pl-9 pr-14"
-        />
-        <kbd className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:block">
-          ⌘K
-        </kbd>
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div ref={boxRef} className="relative w-full max-w-md">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={searchPlaceholder}
+            className="h-9 pl-9 pr-14"
+          />
+          <kbd className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:block">
+            ⌘K
+          </kbd>
 
-        {results ? (
-          <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-lg border bg-popover p-2 shadow-md">
-            {isPending ? (
-              <p className="px-2 py-1.5 text-sm text-muted-foreground">Recherche...</p>
-            ) : hasResults ? (
-              <>
-                {results.students.length > 0 ? (
-                  <div className="mb-1">
-                    <p className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Élèves</p>
-                    {results.students.map((s) => (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => goTo(`/students/${s.id}`)}
-                        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
-                      >
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        {s.first_name} {s.last_name}
-                        <span className="ml-auto text-xs text-muted-foreground">{s.matricule}</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-                {results.classes.length > 0 ? (
-                  <div>
-                    <p className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Classes</p>
-                    {results.classes.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => goTo("/classes")}
-                        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
-                      >
-                        <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                        {c.name}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </>
-            ) : (
-              <p className="px-2 py-1.5 text-sm text-muted-foreground">Aucun résultat.</p>
-            )}
-          </div>
-        ) : null}
+          {results ? (
+            <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-lg border bg-popover p-2 shadow-md">
+              {isPending ? (
+                <p className="px-2 py-1.5 text-sm text-muted-foreground">Recherche...</p>
+              ) : hasResults ? (
+                <>
+                  {results.students.length > 0 ? (
+                    <div className="mb-1">
+                      <p className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Élèves</p>
+                      {results.students.map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => goTo(`/students/${s.id}`)}
+                          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
+                        >
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          {s.first_name} {s.last_name}
+                          <span className="ml-auto text-xs text-muted-foreground">{s.matricule}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                  {results.classes.length > 0 ? (
+                    <div>
+                      <p className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Classes</p>
+                      {results.classes.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => goTo("/classes")}
+                          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
+                        >
+                          <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                          {c.name}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </>
+              ) : (
+                <p className="px-2 py-1.5 text-sm text-muted-foreground">Aucun résultat.</p>
+              )}
+            </div>
+          ) : null}
+        </div>
+
+        {role === "school_admin" ? <SubscriptionNotice schoolId={schoolId} daysRemaining={daysRemaining} /> : null}
       </div>
 
       <p className="hidden shrink-0 whitespace-nowrap text-sm capitalize text-muted-foreground lg:block">{dateTimeLabel}</p>
