@@ -121,16 +121,31 @@ export async function createStudent(formData) {
     );
   }
 
-  if (classId) {
+  // logRegistration (set only by the Inscription form) also logs this to
+  // enrollment_registrations so that page's history shows it — even when
+  // no class was picked, since "classe optionnelle" there is intentional.
+  const logRegistration = formData.get("logRegistration") === "1";
+  if (classId || logRegistration) {
     const schoolYearId = await currentSchoolYearId(supabase, schoolId);
     if (schoolYearId) {
-      await supabase.from("enrollments").insert({
-        school_id: schoolId,
-        student_id: student.id,
-        school_year_id: schoolYearId,
-        class_id: classId,
-        status: "active",
-      });
+      if (classId) {
+        await supabase.from("enrollments").insert({
+          school_id: schoolId,
+          student_id: student.id,
+          school_year_id: schoolYearId,
+          class_id: classId,
+          status: "active",
+        });
+      }
+      if (logRegistration) {
+        await supabase.from("enrollment_registrations").insert({
+          school_id: schoolId,
+          student_id: student.id,
+          school_year_id: schoolYearId,
+          class_id: classId,
+          registered_by: membership.userId,
+        });
+      }
     }
   }
 
