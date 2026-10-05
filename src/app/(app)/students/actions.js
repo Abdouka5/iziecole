@@ -40,10 +40,19 @@ async function currentSchoolYearId(supabase, schoolId) {
   return data?.id ?? null;
 }
 
+// successPath/errorPath let a second entry point (the Inscription page)
+// reuse this same action — and its RLS, matricule numbering, guardians and
+// enrollment logic — without landing back on /students. Omitting them keeps
+// the "Nouvel élève" modal's existing behavior exactly as it was.
 export async function createStudent(formData) {
   const membership = await getCurrentMembership();
   const schoolId = membership.school.id;
   const supabase = await createClient();
+
+  const successPath = formData.get("successPath")?.toString() || "/students";
+  const errorPath = formData.get("errorPath")?.toString() || "/students?new=1";
+  const errorRedirect = (message) =>
+    redirect(`${errorPath}${errorPath.includes("?") ? "&" : "?"}error=${encodeURIComponent(message)}`);
 
   const firstName = formData.get("firstName")?.toString().trim();
   const lastName = formData.get("lastName")?.toString().trim();
@@ -55,7 +64,7 @@ export async function createStudent(formData) {
   const guardians = parseGuardians(formData);
 
   if (!firstName || !lastName) {
-    redirect(`/students?new=1&error=${encodeURIComponent("Prénom et nom sont obligatoires.")}`);
+    errorRedirect("Prénom et nom sont obligatoires.");
   }
 
   const matricule = await nextMatricule(supabase, schoolId);
@@ -76,7 +85,7 @@ export async function createStudent(formData) {
     .single();
 
   if (error) {
-    redirect(`/students?new=1&error=${encodeURIComponent(error.message)}`);
+    errorRedirect(error.message);
   }
 
   if (guardians.length > 0) {
@@ -106,7 +115,7 @@ export async function createStudent(formData) {
   }
 
   revalidatePath("/students");
-  redirect("/students");
+  redirect(successPath);
 }
 
 export async function updateStudent(formData) {
