@@ -51,6 +51,33 @@ export async function createSchoolYear(formData) {
   redirect("/settings?section=year");
 }
 
+export async function updateSchoolYear(formData) {
+  const membership = await getCurrentMembership();
+  const supabase = await createClient();
+
+  const yearId = formData.get("yearId")?.toString();
+  const label = formData.get("label")?.toString().trim();
+  if (!yearId) redirect("/settings?section=year");
+  if (!label) {
+    redirect(`/settings?section=year&edit=${yearId}&error=${encodeURIComponent("Le libellé est obligatoire.")}`);
+  }
+  const { startDate, endDate } = datesFromLabel(label);
+
+  const { error } = await supabase
+    .from("school_years")
+    .update({ label, start_date: startDate, end_date: endDate })
+    .eq("id", yearId)
+    .eq("school_id", membership.school.id);
+
+  if (error) {
+    redirect(`/settings?section=year&edit=${yearId}&error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/dashboard");
+  redirect("/settings?section=year");
+}
+
 export async function setCurrentSchoolYear(formData) {
   const membership = await getCurrentMembership();
   const supabase = await createClient();

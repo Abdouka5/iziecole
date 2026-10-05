@@ -5,7 +5,7 @@ import Link from "next/link";
 import { formatFcfa } from "@/lib/subscription-plans";
 import { getPlatformSettings } from "@/lib/platform-settings";
 import { getSubscriptionStatus } from "@/lib/subscription-status";
-import { Download } from "lucide-react";
+import { Download, Pencil } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,7 @@ import { paySubscription } from "./actions";
 import {
   updateSchoolInfo,
   createSchoolYear,
+  updateSchoolYear,
   setCurrentSchoolYear,
   createLevel,
   createSubject,
@@ -75,7 +76,7 @@ export default async function SettingsPage({ searchParams }) {
           )}
           {section === "general" && <GeneralSection membership={membership} />}
           {section === "year" && (
-            <YearSection supabase={supabase} schoolId={schoolId} error={params.error} />
+            <YearSection supabase={supabase} schoolId={schoolId} error={params.error} editId={params.edit} />
           )}
           {section === "subjects" && (
             <SubjectsSection supabase={supabase} schoolId={schoolId} error={params.error} />
@@ -222,7 +223,7 @@ function GeneralSection({ membership }) {
   );
 }
 
-async function YearSection({ supabase, schoolId, error }) {
+async function YearSection({ supabase, schoolId, error, editId }) {
   const { data: years } = await supabase
     .from("school_years")
     .select("id, label, start_date, end_date, is_current")
@@ -239,26 +240,54 @@ async function YearSection({ supabase, schoolId, error }) {
           {(years ?? []).length === 0 ? (
             <p className="text-sm text-muted-foreground">Aucune année scolaire configurée.</p>
           ) : (
-            years.map((y) => (
-              <div key={y.id} className="flex items-center justify-between rounded-lg border p-3">
-                <div>
-                  <p className="font-medium">{y.label}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(y.start_date).toLocaleDateString("fr-FR")} — {new Date(y.end_date).toLocaleDateString("fr-FR")}
-                  </p>
-                </div>
-                {y.is_current ? (
-                  <Badge className="bg-status-good/10 text-status-good" variant="secondary">En cours</Badge>
-                ) : (
-                  <form action={setCurrentSchoolYear}>
-                    <input type="hidden" name="yearId" value={y.id} />
-                    <Button type="submit" variant="outline" size="sm">
-                      Définir comme actuelle
+            years.map((y) =>
+              y.id === editId ? (
+                <form
+                  key={y.id}
+                  action={updateSchoolYear}
+                  className="flex flex-wrap items-end gap-3 rounded-lg border p-3"
+                >
+                  <input type="hidden" name="yearId" value={y.id} />
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`label-${y.id}`}>Libellé</Label>
+                    <Input id={`label-${y.id}`} name="label" defaultValue={y.label} required className="w-40" />
+                  </div>
+                  <Button type="submit" size="sm">
+                    Enregistrer
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" asChild>
+                    <Link href="/settings?section=year">Annuler</Link>
+                  </Button>
+                  {error ? <p className="w-full text-sm text-destructive">{error}</p> : null}
+                </form>
+              ) : (
+                <div key={y.id} className="flex items-center justify-between rounded-lg border p-3">
+                  <div>
+                    <p className="font-medium">{y.label}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(y.start_date).toLocaleDateString("fr-FR")} — {new Date(y.end_date).toLocaleDateString("fr-FR")}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {y.is_current ? (
+                      <Badge className="bg-status-good/10 text-status-good" variant="secondary">En cours</Badge>
+                    ) : (
+                      <form action={setCurrentSchoolYear}>
+                        <input type="hidden" name="yearId" value={y.id} />
+                        <Button type="submit" variant="outline" size="sm">
+                          Définir comme actuelle
+                        </Button>
+                      </form>
+                    )}
+                    <Button variant="ghost" size="icon" asChild>
+                      <Link href={`/settings?section=year&edit=${y.id}`} aria-label={`Modifier ${y.label}`}>
+                        <Pencil className="h-4 w-4" />
+                      </Link>
                     </Button>
-                  </form>
-                )}
-              </div>
-            ))
+                  </div>
+                </div>
+              ),
+            )
           )}
         </CardContent>
       </Card>
@@ -274,7 +303,7 @@ async function YearSection({ supabase, schoolId, error }) {
               <Input id="label" name="label" placeholder="2025-2026" required />
             </div>
             <Button type="submit">Ajouter</Button>
-            {error ? <p className="w-full text-sm text-destructive">{error}</p> : null}
+            {error && !editId ? <p className="w-full text-sm text-destructive">{error}</p> : null}
           </form>
         </CardContent>
       </Card>
