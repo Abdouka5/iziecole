@@ -21,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { GradeFilters } from "./grade-filters";
+import { GradeEntryFilters } from "./grade-entry-filters";
 import { saveGrades } from "./actions";
 
 function studentAverages(grades) {
@@ -39,6 +40,8 @@ function studentAverages(grades) {
   }
   return averages;
 }
+
+const RESULTS_PAGE_SIZE = 30;
 
 // Accent- and case-insensitive, so "eleve" finds "Élève".
 const normalize = (text) =>
@@ -97,20 +100,23 @@ export default async function GradesPage({ searchParams }) {
     Object.entries(params).filter(([k]) => !["entry", "saved", "entryError"].includes(k)),
   );
 
-  let fullRoster = [];
-  if (classId) {
-    const { data: enrollments } = await supabase
-      .from("enrollments")
-      .select("student_id, students(id, first_name, last_name)")
-      .eq("class_id", classId)
-      .eq("status", "active");
-    fullRoster = (enrollments ?? [])
-      .filter((e) => e.students?.id)
-      .map((e) => ({
-        id: e.students.id,
-        name: `${e.students.first_name ?? ""} ${e.students.last_name ?? ""}`.trim(),
-      }));
-  }
+  // Without a class filter this is every active student in the school
+  // (Classe column added below so each row still says which class), not
+  // just whichever one the admin happens to have selected.
+  let enrollmentsQuery = supabase
+    .from("enrollments")
+    .select("student_id, students(id, first_name, last_name), classes(name)")
+    .eq("school_id", schoolId)
+    .eq("status", "active");
+  if (classId) enrollmentsQuery = enrollmentsQuery.eq("class_id", classId);
+  const { data: enrollments } = await enrollmentsQuery;
+  const fullRoster = (enrollments ?? [])
+    .filter((e) => e.students?.id)
+    .map((e) => ({
+      id: e.students.id,
+      name: `${e.students.first_name ?? ""} ${e.students.last_name ?? ""}`.trim(),
+      className: e.classes?.name ?? "—",
+    }));
   const matchesSearch = (name) => !search || normalize(name).includes(normalize(search));
 
   // Rank is among the whole class (only students who have a grade in the
@@ -121,6 +127,22 @@ export default async function GradesPage({ searchParams }) {
   let nextRank = 1;
   for (const row of ranked) row.rank = row.average != null ? nextRank++ : null;
   const resultRows = ranked.filter((r) => matchesSearch(r.name));
+
+  // Shown without requiring a class filter first — 30 at a time, the top
+  // filters (and search) still narrow it down if you want.
+  const resultsPageCount = Math.max(1, Math.ceil(resultRows.length / RESULTS_PAGE_SIZE));
+  const resultsPage = Math.min(Math.max(1, Number(params.resultsPage) || 1), resultsPageCount);
+  const pagedResultRows = resultRows.slice(
+    (resultsPage - 1) * RESULTS_PAGE_SIZE,
+    resultsPage * RESULTS_PAGE_SIZE,
+  );
+  function resultsPageHref(targetPage) {
+    const sp = new URLSearchParams(
+      Object.entries(params).filter(([k]) => !["entry", "saved", "entryError", "resultsPage"].includes(k)),
+    );
+    if (targetPage > 1) sp.set("resultsPage", String(targetPage));
+    return `/grades?${sp.toString()}`;
+  }
 
   const readyToEnter = Boolean(classId && subjectId && termId);
   const existingScores = new Map();
@@ -189,11 +211,7 @@ export default async function GradesPage({ searchParams }) {
         open={entryOpen}
         closeHref={`/grades?${closeEntryParams.toString()}`}
         title="Saisir des notes"
-        description={
-          readyToEnter
-            ? `${selectedClass?.name} · ${selectedSubject?.name} · ${selectedTerm?.name}`
-            : "Choisissez une classe, une matière et une période dans les filtres ci-dessus, puis cliquez à nouveau sur «Saisir des notes»."
-        }
+        description="Choisissez la classe, la matière et la période, puis saisissez les notes."
         className="sm:max-w-xl"
         footer={
           readyToEnter && entryRoster.length > 0 ? (
@@ -212,37 +230,45 @@ export default async function GradesPage({ searchParams }) {
           )
         }
       >
-        {readyToEnter ? (
-          <form id="grades-entry-form" action={saveGrades} className="py-2">
-            <FormPendingBridge />
-            <input type="hidden" name="classId" value={classId} />
-            <input type="hidden" name="subjectId" value={subjectId} />
-            <input type="hidden" name="termId" value={termId} />
-            {entryRoster.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                {fullRoster.length === 0 ? "Aucun élève inscrit dans cette classe." : "Aucun élève ne correspond à la recherche."}
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {entryRoster.map((s) => (
-                  <div key={s.id} className="flex items-center justify-between gap-3 rounded-lg border p-2.5">
-                    <span className="text-sm font-medium">{s.name}</span>
-                    <Input
-                      type="number"
-                      step="0.5"
-                      min="0"
-                      max="20"
-                      name={`score_${s.id}`}
-                      defaultValue={s.score}
-                      className="w-20"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-            {params.entryError ? <p className="mt-3 text-sm text-destructive">{params.entryError}</p> : null}
-          </form>
-        ) : null}
+        <div className="space-y-4 py-2">
+          <GradeEntryFilters classes={classes ?? []} terms={terms} subjects={subjects ?? []} />
+
+          {readyToEnter ? (
+            <form id="grades-entry-form" action={saveGrades}>
+              <FormPendingBridge />
+              <input type="hidden" name="classId" value={classId} />
+              <input type="hidden" name="subjectId" value={subjectId} />
+              <input type="hidden" name="termId" value={termId} />
+              {entryRoster.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  {fullRoster.length === 0 ? "Aucun élève inscrit dans cette classe." : "Aucun élève ne correspond à la recherche."}
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {entryRoster.map((s) => (
+                    <div key={s.id} className="flex items-center justify-between gap-3 rounded-lg border p-2.5">
+                      <span className="text-sm font-medium">{s.name}</span>
+                      <Input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        max="20"
+                        name={`score_${s.id}`}
+                        defaultValue={s.score}
+                        className="w-20"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+              {params.entryError ? <p className="mt-3 text-sm text-destructive">{params.entryError}</p> : null}
+            </form>
+          ) : (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Sélectionnez une classe, une matière et une période pour afficher la liste des élèves.
+            </p>
+          )}
+        </div>
       </FormModal>
 
       <Tabs defaultValue="results">
@@ -253,52 +279,66 @@ export default async function GradesPage({ searchParams }) {
         </TabsList>
 
         <TabsContent value="results">
-          {!classId ? (
-            <Card>
-              <CardContent className="py-10 text-center text-sm text-muted-foreground">
-                Choisissez une classe pour voir les résultats.
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-2">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm text-muted-foreground">
                 Moyennes — {filterSummary}
                 {search ? ` · recherche « ${search} »` : ""}
+                {resultRows.length > 0 ? ` · ${resultRows.length} élève${resultRows.length > 1 ? "s" : ""}` : ""}
               </p>
-              <div className="overflow-x-auto rounded-2xl border bg-card">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Rang</TableHead>
-                      <TableHead>Élève</TableHead>
-                      <TableHead>Moyenne</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {resultRows.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={3} className="py-10 text-center text-muted-foreground">
-                          {fullRoster.length === 0
-                            ? "Aucun élève inscrit dans cette classe."
-                            : search
-                              ? "Aucun élève ne correspond à la recherche."
-                              : "Aucune note saisie pour cette classe."}
-                        </TableCell>
-                      </TableRow>
+              {resultsPageCount > 1 ? (
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" disabled={resultsPage <= 1} asChild={resultsPage > 1}>
+                    {resultsPage > 1 ? <Link href={resultsPageHref(resultsPage - 1)}>Précédent</Link> : <span>Précédent</span>}
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    Page {resultsPage} / {resultsPageCount}
+                  </span>
+                  <Button variant="outline" size="sm" disabled={resultsPage >= resultsPageCount} asChild={resultsPage < resultsPageCount}>
+                    {resultsPage < resultsPageCount ? (
+                      <Link href={resultsPageHref(resultsPage + 1)}>Suivant</Link>
                     ) : (
-                      resultRows.map((row) => (
-                        <TableRow key={row.id}>
-                          <TableCell>{row.rank ?? "—"}</TableCell>
-                          <TableCell className="font-medium">{row.name}</TableCell>
-                          <TableCell>{row.average != null ? `${row.average.toFixed(1)} / 20` : "—"}</TableCell>
-                        </TableRow>
-                      ))
+                      <span>Suivant</span>
                     )}
-                  </TableBody>
-                </Table>
-              </div>
+                  </Button>
+                </div>
+              ) : null}
             </div>
-          )}
+            <div className="overflow-x-auto rounded-2xl border bg-card">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Rang</TableHead>
+                    <TableHead>Élève</TableHead>
+                    {!classId ? <TableHead>Classe</TableHead> : null}
+                    <TableHead>Moyenne</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pagedResultRows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={classId ? 3 : 4} className="py-10 text-center text-muted-foreground">
+                        {fullRoster.length === 0
+                          ? classId
+                            ? "Aucun élève inscrit dans cette classe."
+                            : "Aucun élève actif dans l'établissement."
+                          : "Aucun élève ne correspond à la recherche."}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    pagedResultRows.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell>{row.rank ?? "—"}</TableCell>
+                        <TableCell className="font-medium">{row.name}</TableCell>
+                        {!classId ? <TableCell className="text-muted-foreground">{row.className}</TableCell> : null}
+                        <TableCell>{row.average != null ? `${row.average.toFixed(1)} / 20` : "—"}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="bulletins">
