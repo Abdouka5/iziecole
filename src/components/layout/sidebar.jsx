@@ -6,6 +6,8 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   User,
+  UserPlus,
+  UserX,
   GraduationCap,
   FileText,
   Wallet,
@@ -34,9 +36,11 @@ export const NAV_BY_ROLE = {
   ],
   school_admin: [
     { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
+    { href: "/enrollment", label: "Inscription", icon: UserPlus },
     { href: "/students", label: "Élèves", icon: User },
     { href: "/classes", label: "Classes", icon: GraduationCap },
     { href: "/grades", label: "Notes & bulletins", icon: FileText },
+    { href: "/attendance", label: "Absences / Retards", icon: UserX },
     { href: "/finance", label: "Finances", icon: Wallet },
     { href: "/schedule", label: "Emploi du temps", icon: CalendarClock },
     { href: "/personnel", label: "Personnel", icon: Briefcase },
@@ -46,6 +50,7 @@ export const NAV_BY_ROLE = {
   teacher: [
     { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
     { href: "/grades", label: "Notes", icon: FileText },
+    { href: "/attendance", label: "Absences / Retards", icon: UserX },
     { href: "/schedule", label: "Emploi du temps", icon: CalendarClock },
   ],
   cashier: [{ href: "/caisse", label: "Caisse", icon: Receipt }],

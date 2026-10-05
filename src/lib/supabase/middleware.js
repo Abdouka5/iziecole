@@ -15,7 +15,9 @@ const PUBLIC_PATHS = ["/", "/login", "/superadminlogin", "/signup", "/auth", "/a
 // matching the `isExemptPage` check in (app)/layout.js.
 const PROTECTED_APP_PATHS = [
   "/dashboard",
+  "/enrollment",
   "/students",
+  "/attendance",
   "/classes",
   "/grades",
   "/finance",
