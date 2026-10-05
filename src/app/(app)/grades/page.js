@@ -3,6 +3,7 @@ import { FileText, BarChart3, Users2, Award, PenSquare, Printer, FilePenLine, Fi
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMembership } from "@/lib/school-context";
 import { getTermsForCurrentYear } from "@/lib/school-defaults";
+import { CYCLE_LABELS } from "@/lib/report-card";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/layout/stat-card";
 import { FormModal } from "@/components/layout/form-modal";
@@ -11,7 +12,6 @@ import { ModalSubmitButton } from "@/components/ui/modal-submit-button";
 import { FormPendingBridge } from "@/components/ui/form-pending-bridge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
@@ -22,8 +22,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { GradeFilters } from "./grade-filters";
-import { GradeEntryFilters } from "./grade-entry-filters";
-import { saveGrades, saveAppreciation } from "./actions";
+import { StudentTermPicker } from "./student-term-picker";
+import { GradeEntryEditor } from "./grade-entry-editor";
+import { saveStudentGrades, saveAppreciation } from "./actions";
 
 function studentAverages(grades) {
   const byStudent = new Map();
@@ -40,6 +41,56 @@ function studentAverages(grades) {
     averages.set(studentId, coefficients > 0 ? weighted / coefficients : 0);
   }
   return averages;
+}
+
+// Everything the per-student "Saisir les notes" editor needs: the class's
+// matières + configured coefficients (class_subjects), and this student's
+// existing grades grouped by term — loaded for every term at once so
+// switching the Trimestre select inside the modal is instant, no reload.
+async function loadGradeEntryData(supabase, schoolId, studentId) {
+  const { data: student } = await supabase
+    .from("students")
+    .select("id, first_name, last_name, matricule")
+    .eq("id", studentId)
+    .eq("school_id", schoolId)
+    .maybeSingle();
+  if (!student) return null;
+
+  const { data: enrollment } = await supabase
+    .from("enrollments")
+    .select("class_id, classes(id, name, levels(name, cycle))")
+    .eq("student_id", studentId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  const classInfo = enrollment?.classes ?? null;
+  const classId = classInfo?.id ?? null;
+
+  const { data: classSubjectsRaw } = classId
+    ? await supabase.from("class_subjects").select("id, subject_id, coefficient").eq("class_id", classId)
+    : { data: [] };
+  const classSubjectIdToSubject = new Map((classSubjectsRaw ?? []).map((cs) => [cs.id, cs.subject_id]));
+  const classSubjectIds = [...classSubjectIdToSubject.keys()];
+
+  const { data: gradeRows } = classSubjectIds.length
+    ? await supabase.from("grades").select("term_id, score, class_subject_id").eq("student_id", studentId).in("class_subject_id", classSubjectIds)
+    : { data: [] };
+
+  const gradesByTerm = {};
+  for (const g of gradeRows ?? []) {
+    const subjectId = classSubjectIdToSubject.get(g.class_subject_id);
+    if (!subjectId) continue;
+    (gradesByTerm[g.term_id] ??= []).push({ subjectId, score: g.score });
+  }
+
+  return {
+    student,
+    classId,
+    classLabel: classInfo?.name ?? null,
+    levelLabel: classInfo?.levels ? CYCLE_LABELS[classInfo.levels.cycle] ?? classInfo.levels.name : null,
+    classSubjects: (classSubjectsRaw ?? []).map((cs) => ({ subjectId: cs.subject_id, coefficient: Number(cs.coefficient) })),
+    gradesByTerm,
+  };
 }
 
 const RESULTS_PAGE_SIZE = 30;
@@ -62,16 +113,37 @@ export default async function GradesPage({ searchParams }) {
   const subjectId = params.subjectId;
   const search = params.q?.trim() ?? "";
   const entryOpen = Boolean(params.entry);
+  const entryStudentId = params.studentId;
 
-  const [{ data: classes }, { data: subjects }, { data: allGrades }, { terms }] = await Promise.all([
-    supabase.from("classes").select("id, name").eq("school_id", schoolId).order("name"),
-    supabase.from("subjects").select("id, name").eq("school_id", schoolId).order("name"),
-    supabase
-      .from("grades")
-      .select("student_id, score, max_score, term_id, class_subjects(coefficient, class_id, subject_id, subjects(name))")
-      .eq("school_id", schoolId),
-    getTermsForCurrentYear(supabase, schoolId),
-  ]);
+  const [{ data: classes }, { data: subjects }, { data: allGrades }, { terms, year }, { data: pickerEnrollments }] =
+    await Promise.all([
+      supabase.from("classes").select("id, name").eq("school_id", schoolId).order("name"),
+      supabase.from("subjects").select("id, name").eq("school_id", schoolId).order("name"),
+      supabase
+        .from("grades")
+        .select("student_id, score, max_score, term_id, class_subjects(coefficient, class_id, subject_id, subjects(name))")
+        .eq("school_id", schoolId),
+      getTermsForCurrentYear(supabase, schoolId),
+      supabase
+        .from("enrollments")
+        .select("student_id, students(id, first_name, last_name, matricule), classes(name)")
+        .eq("school_id", schoolId)
+        .eq("status", "active"),
+    ]);
+
+  const pickerStudents = (pickerEnrollments ?? [])
+    .filter((e) => e.students?.id)
+    .map((e) => ({
+      id: e.students.id,
+      firstName: e.students.first_name,
+      lastName: e.students.last_name,
+      matricule: e.students.matricule,
+      className: e.classes?.name ?? null,
+    }));
+
+  const entryTermId = params.gradeTermId || termId || terms[0]?.id || "";
+  const gradeEntryData = entryOpen && entryStudentId ? await loadGradeEntryData(supabase, schoolId, entryStudentId) : null;
+  const canGradeSubjects = membership.role === "school_admin";
 
   const selectedTerm = terms.find((t) => t.id === termId);
   const selectedSubject = (subjects ?? []).find((s) => s.id === subjectId);
@@ -94,11 +166,14 @@ export default async function GradesPage({ searchParams }) {
   const honorsCount = [...filteredAverages.values()].filter((avg) => avg >= 16).length;
 
   const entryHrefParams = new URLSearchParams(
-    Object.entries(params).filter(([k]) => !["entry", "saved", "entryError"].includes(k)),
+    Object.entries(params).filter(([k]) => !["entry", "saved", "entryError", "studentId", "gradeTermId"].includes(k)),
   );
   entryHrefParams.set("entry", "1");
-  const closeEntryParams = new URLSearchParams(
-    Object.entries(params).filter(([k]) => !["entry", "saved", "entryError"].includes(k)),
+  // The page's own filters as they were before "Saisir des notes" was
+  // opened — what the modal's "Annuler"/close goes back to, and what the
+  // save action restores afterward (see returnTo in saveStudentGrades).
+  const returnToParams = new URLSearchParams(
+    Object.entries(params).filter(([k]) => !["entry", "saved", "entryError", "studentId", "gradeTermId"].includes(k)),
   );
 
   // Without a class filter this is every active student in the school
@@ -183,23 +258,6 @@ export default async function GradesPage({ searchParams }) {
     return `/grades?${sp.toString()}`;
   }
 
-  const readyToEnter = Boolean(classId && subjectId && termId);
-  const existingScores = new Map();
-  if (readyToEnter) {
-    for (const g of allGrades ?? []) {
-      if (
-        g.term_id === termId &&
-        g.class_subjects?.class_id === classId &&
-        g.class_subjects?.subject_id === subjectId
-      ) {
-        existingScores.set(g.student_id, g.score);
-      }
-    }
-  }
-  const entryRoster = fullRoster
-    .filter((s) => matchesSearch(s.name))
-    .map((s) => ({ ...s, score: existingScores.get(s.id) ?? "" }));
-
   const subjectStats = new Map();
   for (const g of filteredGrades) {
     const name = g.class_subjects?.subjects?.name ?? "Autre";
@@ -248,66 +306,70 @@ export default async function GradesPage({ searchParams }) {
 
       <FormModal
         open={entryOpen}
-        closeHref={`/grades?${closeEntryParams.toString()}`}
-        title="Saisir des notes"
-        description="Choisissez la classe, la matière et la période, puis saisissez les notes."
-        className="sm:max-w-xl"
+        closeHref={`/grades?${returnToParams.toString()}`}
+        title={
+          <span className="flex items-center gap-2">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <PenSquare className="h-4 w-4" />
+            </span>
+            Saisir les notes
+          </span>
+        }
+        description="Enregistrez les notes de composition du trimestre pour cet élève."
+        className="sm:max-w-2xl"
         footer={
-          readyToEnter && entryRoster.length > 0 ? (
+          gradeEntryData?.classId ? (
             <>
-              <ModalSubmitButton form="grades-entry-form" pendingText="Enregistrement...">
+              <ModalSubmitButton form="grade-entry-form" pendingText="Enregistrement...">
                 Enregistrer les notes
               </ModalSubmitButton>
               <Button variant="outline" asChild>
-                <Link href={`/grades?${closeEntryParams.toString()}`}>Annuler</Link>
+                <Link href={`/grades?${returnToParams.toString()}`}>Annuler</Link>
               </Button>
             </>
           ) : (
             <Button variant="outline" asChild>
-              <Link href={`/grades?${closeEntryParams.toString()}`}>Fermer</Link>
+              <Link href={`/grades?${returnToParams.toString()}`}>Annuler</Link>
             </Button>
           )
         }
       >
-        <div className="space-y-4 py-2">
-          <GradeEntryFilters classes={classes ?? []} terms={terms} subjects={subjects ?? []} />
-
-          {readyToEnter ? (
-            <form id="grades-entry-form" action={saveGrades}>
-              <FormPendingBridge />
-              <input type="hidden" name="classId" value={classId} />
-              <input type="hidden" name="subjectId" value={subjectId} />
-              <input type="hidden" name="termId" value={termId} />
-              {entryRoster.length === 0 ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">
-                  {fullRoster.length === 0 ? "Aucun élève inscrit dans cette classe." : "Aucun élève ne correspond à la recherche."}
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {entryRoster.map((s) => (
-                    <div key={s.id} className="flex items-center justify-between gap-3 rounded-lg border p-2.5">
-                      <span className="text-sm font-medium">{s.name}</span>
-                      <Input
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        max="20"
-                        name={`score_${s.id}`}
-                        defaultValue={s.score}
-                        className="w-20"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-              {params.entryError ? <p className="mt-3 text-sm text-destructive">{params.entryError}</p> : null}
-            </form>
-          ) : (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              Sélectionnez une classe, une matière et une période pour afficher la liste des élèves.
-            </p>
-          )}
-        </div>
+        {!entryStudentId ? (
+          <StudentTermPicker students={pickerStudents} terms={terms} initialTermId={entryTermId} />
+        ) : !gradeEntryData ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">Élève introuvable.</p>
+        ) : !gradeEntryData.classId ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            Cet élève n&apos;est affecté à aucune classe pour l&apos;année en cours — affectez-le d&apos;abord dans
+            Élèves.
+          </p>
+        ) : (
+          <>
+            <GradeEntryEditor
+              formId="grade-entry-form"
+              action={saveStudentGrades}
+              returnTo={returnToParams.toString()}
+              studentId={gradeEntryData.student.id}
+              classId={gradeEntryData.classId}
+              student={{
+                firstName: gradeEntryData.student.first_name,
+                lastName: gradeEntryData.student.last_name,
+                matricule: gradeEntryData.student.matricule,
+              }}
+              classLabel={gradeEntryData.classLabel}
+              levelLabel={gradeEntryData.levelLabel}
+              schoolYearLabel={year?.label ?? "—"}
+              terms={terms}
+              initialTermId={terms.some((t) => t.id === entryTermId) ? entryTermId : terms[0]?.id ?? ""}
+              subjectCatalog={subjects ?? []}
+              classSubjects={gradeEntryData.classSubjects}
+              gradesByTerm={gradeEntryData.gradesByTerm}
+              canEditCoefficient={canGradeSubjects}
+              canAddNewSubject={canGradeSubjects}
+            />
+            {params.entryError ? <p className="px-1 text-sm text-destructive">{params.entryError}</p> : null}
+          </>
+        )}
       </FormModal>
 
       <FormModal
@@ -387,12 +449,13 @@ export default async function GradesPage({ searchParams }) {
                     <TableHead>Élève</TableHead>
                     {!classId ? <TableHead>Classe</TableHead> : null}
                     <TableHead>Moyenne</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {pagedResultRows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={classId ? 3 : 4} className="py-10 text-center text-muted-foreground">
+                      <TableCell colSpan={classId ? 4 : 5} className="py-10 text-center text-muted-foreground">
                         {fullRoster.length === 0
                           ? classId
                             ? "Aucun élève inscrit dans cette classe."
@@ -407,6 +470,15 @@ export default async function GradesPage({ searchParams }) {
                         <TableCell className="font-medium">{row.name}</TableCell>
                         {!classId ? <TableCell className="text-muted-foreground">{row.className}</TableCell> : null}
                         <TableCell>{row.average != null ? `${row.average.toFixed(1)} / 20` : "—"}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" asChild title="Saisir les notes">
+                            <Link
+                              href={`/grades?${new URLSearchParams({ ...params, entry: "1", studentId: row.id, gradeTermId: entryTermId }).toString()}`}
+                            >
+                              <PenSquare className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
