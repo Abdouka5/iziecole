@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileText, BarChart3, Users2, Award, PenSquare } from "lucide-react";
+import { FileText, BarChart3, Users2, Award, PenSquare, Printer, FilePenLine, Files } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMembership } from "@/lib/school-context";
 import { getTermsForCurrentYear } from "@/lib/school-defaults";
@@ -12,6 +12,7 @@ import { FormPendingBridge } from "@/components/ui/form-pending-bridge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -22,7 +23,7 @@ import {
 } from "@/components/ui/table";
 import { GradeFilters } from "./grade-filters";
 import { GradeEntryFilters } from "./grade-entry-filters";
-import { saveGrades } from "./actions";
+import { saveGrades, saveAppreciation } from "./actions";
 
 function studentAverages(grades) {
   const byStudent = new Map();
@@ -118,6 +119,44 @@ export default async function GradesPage({ searchParams }) {
       className: e.classes?.name ?? "—",
     }));
   const matchesSearch = (name) => !search || normalize(name).includes(normalize(search));
+
+  // Bulletins need one specific class + term (not the optional subjectId
+  // filter the rest of the page uses) — averages/rank are recomputed from
+  // allGrades scoped that way so switching the "Matière" filter up top
+  // never changes what a bulletin shows.
+  const bulletinReady = Boolean(classId && termId);
+  let bulletinRows = [];
+  let commentByStudent = new Map();
+  if (bulletinReady) {
+    const bulletinGrades = (allGrades ?? []).filter(
+      (g) => g.class_subjects?.class_id === classId && g.term_id === termId,
+    );
+    const bulletinAverages = studentAverages(bulletinGrades);
+    const rankedForBulletins = fullRoster
+      .map((s) => ({ ...s, average: bulletinAverages.get(s.id) ?? null }))
+      .sort((a, b) => (b.average ?? -1) - (a.average ?? -1));
+    let nextBulletinRank = 1;
+    for (const row of rankedForBulletins) if (row.average != null) row.rank = nextBulletinRank++;
+    bulletinRows = [...rankedForBulletins].sort((a, b) => a.name.localeCompare(b.name, "fr"));
+
+    if (fullRoster.length > 0) {
+      const { data: comments } = await supabase
+        .from("report_card_comments")
+        .select("student_id, comment")
+        .eq("term_id", termId)
+        .in(
+          "student_id",
+          fullRoster.map((s) => s.id),
+        );
+      commentByStudent = new Map((comments ?? []).map((c) => [c.student_id, c.comment]));
+    }
+  }
+  const appreciationTarget = params.appreciation
+    ? bulletinRows.find((s) => s.id === params.appreciation)
+    : null;
+  const appreciationCloseParams = new URLSearchParams(
+    Object.entries(params).filter(([k]) => !["appreciation", "appreciationSaved", "appreciationError"].includes(k)),
+  );
 
   // Rank is among the whole class (only students who have a grade in the
   // current filter), and searching only narrows what is displayed.
@@ -271,6 +310,42 @@ export default async function GradesPage({ searchParams }) {
         </div>
       </FormModal>
 
+      <FormModal
+        open={Boolean(appreciationTarget)}
+        closeHref={`/grades?${appreciationCloseParams.toString()}`}
+        title="Appréciation du conseil de classe"
+        description={appreciationTarget ? appreciationTarget.name : undefined}
+        className="sm:max-w-lg"
+        footer={
+          <>
+            <ModalSubmitButton form="appreciation-form" pendingText="Enregistrement...">
+              Enregistrer
+            </ModalSubmitButton>
+            <Button variant="outline" asChild>
+              <Link href={`/grades?${appreciationCloseParams.toString()}`}>Annuler</Link>
+            </Button>
+          </>
+        }
+      >
+        {appreciationTarget ? (
+          <form id="appreciation-form" action={saveAppreciation} className="space-y-3 py-2">
+            <FormPendingBridge />
+            <input type="hidden" name="studentId" value={appreciationTarget.id} />
+            <input type="hidden" name="termId" value={termId ?? ""} />
+            <input type="hidden" name="classId" value={classId ?? ""} />
+            <Textarea
+              name="comment"
+              rows={5}
+              placeholder="Élève sérieux, travailleur et régulier..."
+              defaultValue={commentByStudent.get(appreciationTarget.id) ?? ""}
+            />
+            {params.appreciationError ? (
+              <p className="text-sm text-destructive">{params.appreciationError}</p>
+            ) : null}
+          </form>
+        ) : null}
+      </FormModal>
+
       <Tabs defaultValue="results">
         <TabsList>
           <TabsTrigger value="results">Résultats par classe</TabsTrigger>
@@ -342,11 +417,73 @@ export default async function GradesPage({ searchParams }) {
         </TabsContent>
 
         <TabsContent value="bulletins">
-          <Card>
-            <CardContent className="py-10 text-center text-sm text-muted-foreground">
-              La génération de bulletins PDF arrive bientôt.
-            </CardContent>
-          </Card>
+          {!bulletinReady ? (
+            <Card>
+              <CardContent className="py-10 text-center text-sm text-muted-foreground">
+                Choisissez une classe et une période dans les filtres ci-dessus pour générer des bulletins.
+              </CardContent>
+            </Card>
+          ) : bulletinRows.length === 0 ? (
+            <Card>
+              <CardContent className="py-10 text-center text-sm text-muted-foreground">
+                Aucun élève inscrit dans cette classe.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm text-muted-foreground">
+                  {selectedClass?.name ?? "Classe"} · {selectedTerm?.name ?? "Période"} · {bulletinRows.length} élève
+                  {bulletinRows.length > 1 ? "s" : ""}
+                </p>
+                <Button variant="outline" asChild>
+                  <Link href={`/bulletin/class/${classId}/${termId}`} target="_blank">
+                    <Files className="mr-1.5 h-4 w-4" />
+                    Générer tous les bulletins de la classe
+                  </Link>
+                </Button>
+              </div>
+              <div className="overflow-x-auto rounded-2xl border bg-card">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Rang</TableHead>
+                      <TableHead>Élève</TableHead>
+                      <TableHead>Moyenne</TableHead>
+                      <TableHead>Appréciation</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {bulletinRows.map((s) => (
+                      <TableRow key={s.id}>
+                        <TableCell>{s.rank ?? "—"}</TableCell>
+                        <TableCell className="font-medium">{s.name}</TableCell>
+                        <TableCell>{s.average != null ? `${s.average.toFixed(1)} / 20` : "—"}</TableCell>
+                        <TableCell className="max-w-[220px] truncate text-muted-foreground">
+                          {commentByStudent.get(s.id) || "—"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button variant="ghost" size="icon" asChild title="Modifier l'appréciation">
+                              <Link href={`/grades?${new URLSearchParams({ ...params, appreciation: s.id }).toString()}`}>
+                                <FilePenLine className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                            <Button variant="ghost" size="icon" asChild title="Générer le bulletin">
+                              <Link href={`/bulletin/${s.id}/${termId}`} target="_blank">
+                                <Printer className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="stats">

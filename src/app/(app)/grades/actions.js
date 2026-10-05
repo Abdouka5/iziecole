@@ -71,3 +71,32 @@ export async function saveGrades(formData) {
   revalidatePath("/grades");
   back({ saved: "1" });
 }
+
+// "Appréciation du conseil de classe" for one student's bulletin, scoped to
+// a single term — saved separately from grades since it's prose, not a
+// per-subject score.
+export async function saveAppreciation(formData) {
+  const membership = await getCurrentMembership();
+  const schoolId = membership.school.id;
+  const supabase = await createClient();
+
+  const studentId = formData.get("studentId")?.toString();
+  const termId = formData.get("termId")?.toString();
+  const comment = formData.get("comment")?.toString().trim() ?? "";
+  const classId = formData.get("classId")?.toString() ?? "";
+  if (!studentId || !termId) redirect("/grades");
+
+  const back = (extra) =>
+    redirect(`/grades?${new URLSearchParams({ classId, termId, ...extra }).toString()}`);
+
+  const { error } = await supabase
+    .from("report_card_comments")
+    .upsert(
+      { school_id: schoolId, student_id: studentId, term_id: termId, comment: comment || null },
+      { onConflict: "student_id,term_id" },
+    );
+  if (error) back({ appreciationError: error.message, appreciation: studentId });
+
+  revalidatePath("/grades");
+  back({ appreciationSaved: "1" });
+}
