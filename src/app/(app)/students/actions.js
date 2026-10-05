@@ -5,13 +5,26 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMembership } from "@/lib/school-context";
 
-async function nextMatricule(supabase, schoolId) {
+// Based on the highest existing number, not a count of students — a count
+// collides with an existing matricule as soon as anyone's ever been
+// deleted (count goes back down, but the matricules already issued don't).
+async function nextMatricule(supabase, schoolId, attempt = 0) {
   const year = new Date().getFullYear();
-  const { count } = await supabase
+  const prefix = `IZ${year}`;
+  const { data } = await supabase
     .from("students")
-    .select("id", { count: "exact", head: true })
-    .eq("school_id", schoolId);
-  return `IZ${year}${String((count ?? 0) + 1).padStart(3, "0")}`;
+    .select("matricule")
+    .eq("school_id", schoolId)
+    .like("matricule", `${prefix}%`);
+
+  let max = 0;
+  for (const { matricule } of data ?? []) {
+    const n = Number(matricule?.slice(prefix.length));
+    if (Number.isFinite(n) && n > max) max = n;
+  }
+  // +attempt covers the (rare) case of two enrollments racing each other —
+  // createStudent retries this on a unique-constraint error.
+  return `${prefix}${String(max + 1 + attempt).padStart(3, "0")}`;
 }
 
 // Guardian rows arrive as guardian_name_<key>/guardian_phone_<key>/
@@ -67,22 +80,29 @@ export async function createStudent(formData) {
     errorRedirect("Prénom et nom sont obligatoires.");
   }
 
-  const matricule = await nextMatricule(supabase, schoolId);
+  let student, error;
+  const MAX_ATTEMPTS = 5;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const matricule = await nextMatricule(supabase, schoolId, attempt);
+    ({ data: student, error } = await supabase
+      .from("students")
+      .insert({
+        school_id: schoolId,
+        first_name: firstName,
+        last_name: lastName,
+        birth_date: birthDate,
+        birth_place: birthPlace,
+        address,
+        gender,
+        matricule,
+      })
+      .select("id")
+      .single());
 
-  const { data: student, error } = await supabase
-    .from("students")
-    .insert({
-      school_id: schoolId,
-      first_name: firstName,
-      last_name: lastName,
-      birth_date: birthDate,
-      birth_place: birthPlace,
-      address,
-      gender,
-      matricule,
-    })
-    .select("id")
-    .single();
+    // 23505 = unique_violation — two enrollments picked the same matricule
+    // at once. Anything else (a real validation error) shouldn't be retried.
+    if (!error || error.code !== "23505") break;
+  }
 
   if (error) {
     errorRedirect(error.message);
