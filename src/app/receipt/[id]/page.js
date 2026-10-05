@@ -30,6 +30,8 @@ export default async function ReceiptPage({ params, searchParams }) {
 
   if (!payment) notFound();
 
+  const isInscription = payment.invoices?.period_label?.startsWith("Inscription");
+
   return (
     <div className="flex min-h-screen flex-col items-center bg-secondary/40 py-10 print:min-h-0 print:bg-white print:py-0">
       {download === "1" ? null : <AutoPrint />}
@@ -51,7 +53,7 @@ export default async function ReceiptPage({ params, searchParams }) {
 
         <div className="border-t border-dashed border-black/40" />
 
-        <p className="text-center font-semibold">REÇU DE PAIEMENT</p>
+        <p className="text-center font-semibold">{isInscription ? "REÇU D'INSCRIPTION" : "REÇU DE PAIEMENT"}</p>
 
         <div className="space-y-1">
           <div className="flex justify-between">

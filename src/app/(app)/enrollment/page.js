@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { UserPlus, UserCheck, Users, GraduationCap, Eye, Plus } from "lucide-react";
+import { UserPlus, UserCheck, Users, GraduationCap, Eye, Receipt, Printer } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMembership } from "@/lib/school-context";
 import { getTermsForCurrentYear } from "@/lib/school-defaults";
+import { METHOD_LABELS } from "@/lib/payment-methods";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/layout/stat-card";
 import { FormModal } from "@/components/layout/form-modal";
@@ -12,12 +13,6 @@ import { FormPendingBridge } from "@/components/ui/form-pending-bridge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -94,28 +89,20 @@ export default async function EnrollmentPage({ searchParams }) {
         title="Inscription"
         subtitle="Enregistrez un nouvel élève ou affectez un élève existant à une classe."
         actions={
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button>
-                <Plus className="mr-1.5 h-4 w-4" />
-                Nouvelle inscription
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link href="/enrollment?new=1" className="flex items-center gap-2">
-                  <UserPlus className="h-4 w-4" />
-                  Nouvel élève
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/enrollment?existing=1" className="flex items-center gap-2">
-                  <UserCheck className="h-4 w-4" />
-                  Élève existant
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-2">
+            <Button asChild>
+              <Link href="/enrollment?new=1">
+                <UserPlus className="mr-1.5 h-4 w-4" />
+                Nouvel élève
+              </Link>
+            </Button>
+            <Button asChild className="bg-emerald-600 text-white hover:bg-emerald-600/90">
+              <Link href="/enrollment?existing=1">
+                <UserCheck className="mr-1.5 h-4 w-4" />
+                Élève existant
+              </Link>
+            </Button>
+          </div>
         }
       />
 
@@ -203,6 +190,34 @@ export default async function EnrollmentPage({ searchParams }) {
             <GuardianFields />
           </div>
 
+          <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+            <Label>Frais d&apos;inscription (optionnel)</Label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input
+                name="inscriptionAmount"
+                type="number"
+                min="0"
+                step="1"
+                placeholder="Montant en FCFA"
+              />
+              <Select name="inscriptionMethod" defaultValue="especes">
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(METHOD_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Si un montant est saisi, une classe est nécessaire — le paiement est enregistré dans Finances et un reçu est proposé à l&apos;impression.
+            </p>
+          </div>
+
           {params.error && params.new ? <p className="text-sm text-destructive">{params.error}</p> : null}
         </form>
       </FormModal>
@@ -247,8 +262,64 @@ export default async function EnrollmentPage({ searchParams }) {
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+            <Label>Frais d&apos;inscription (optionnel)</Label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input
+                name="inscriptionAmount"
+                type="number"
+                min="0"
+                step="1"
+                placeholder="Montant en FCFA"
+              />
+              <Select name="inscriptionMethod" defaultValue="especes">
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(METHOD_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Si un montant est saisi, le paiement est enregistré dans Finances et un reçu est proposé à l&apos;impression.
+            </p>
+          </div>
+
           {params.error && params.existing ? <p className="text-sm text-destructive">{params.error}</p> : null}
         </form>
+      </FormModal>
+
+      <FormModal
+        open={Boolean(params.receipt)}
+        closeHref="/enrollment"
+        title="Inscription enregistrée"
+        footer={
+          <>
+            <Button asChild>
+              <Link href={`/receipt/${params.receipt}`} target="_blank">
+                <Printer className="mr-1.5 h-4 w-4" />
+                Imprimer le reçu
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/enrollment">Fermer</Link>
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center gap-2 py-6 text-center">
+          <Receipt className="h-8 w-8 text-status-good" />
+          <p className="text-sm text-muted-foreground">
+            Élève inscrit et frais d&apos;inscription encaissés. Le reçu s&apos;ouvre dans un nouvel onglet et
+            lance automatiquement l&apos;impression.
+          </p>
+        </div>
       </FormModal>
 
       <div className="overflow-x-auto rounded-2xl border bg-card">

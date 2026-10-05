@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMembership } from "@/lib/school-context";
+import { recordInscriptionPayment } from "@/lib/inscription-payment";
 
 // Based on the highest existing number, not a count of students — a count
 // collides with an existing matricule as soon as anyone's ever been
@@ -75,9 +76,16 @@ export async function createStudent(formData) {
   const address = formData.get("address")?.toString().trim() || null;
   const classId = formData.get("classId")?.toString() || null;
   const guardians = parseGuardians(formData);
+  // Only the Inscription form sends these — frais d'inscription collected
+  // at registration time, recorded in Finance like any other payment.
+  const inscriptionAmount = Number(formData.get("inscriptionAmount")) || 0;
+  const inscriptionMethod = formData.get("inscriptionMethod")?.toString() || "especes";
 
   if (!firstName || !lastName) {
     errorRedirect("Prénom et nom sont obligatoires.");
+  }
+  if (inscriptionAmount > 0 && !classId) {
+    errorRedirect("Choisissez une classe pour encaisser les frais d'inscription.");
   }
 
   let student, error;
@@ -125,8 +133,9 @@ export async function createStudent(formData) {
   // enrollment_registrations so that page's history shows it — even when
   // no class was picked, since "classe optionnelle" there is intentional.
   const logRegistration = formData.get("logRegistration") === "1";
+  let schoolYearId = null;
   if (classId || logRegistration) {
-    const schoolYearId = await currentSchoolYearId(supabase, schoolId);
+    schoolYearId = await currentSchoolYearId(supabase, schoolId);
     if (schoolYearId) {
       if (classId) {
         await supabase.from("enrollments").insert({
@@ -149,8 +158,26 @@ export async function createStudent(formData) {
     }
   }
 
+  let paymentId = null;
+  if (inscriptionAmount > 0 && classId && schoolYearId) {
+    const { data: cls } = await supabase.from("classes").select("level_id").eq("id", classId).maybeSingle();
+    if (cls?.level_id) {
+      const result = await recordInscriptionPayment(supabase, {
+        schoolId,
+        studentId: student.id,
+        levelId: cls.level_id,
+        schoolYearId,
+        amount: inscriptionAmount,
+        method: inscriptionMethod,
+        registeredBy: membership.userId,
+      });
+      paymentId = result.paymentId ?? null;
+      if (paymentId) revalidatePath("/finance");
+    }
+  }
+
   revalidatePath("/students");
-  redirect(successPath);
+  redirect(paymentId ? `${successPath}${successPath.includes("?") ? "&" : "?"}receipt=${paymentId}` : successPath);
 }
 
 export async function updateStudent(formData) {
